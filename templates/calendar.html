@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block title %}Calendar sarcini{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Calendar · {{ month_name }} <span class="count">{{ n }}</span></h1>
+  <div class="actions">
+    <a class="btn" href="{{ url_with(m=prev) }}" aria-label="Luna precedentă">‹</a>
+    <a class="btn" href="{{ url_with(m=None) }}">Azi</a>
+    <a class="btn" href="{{ url_with(m=nxt) }}" aria-label="Luna următoare">›</a>
+    <a class="btn {{ 'on' if only_open }}" href="{{ url_with(open=(None if only_open else '1')) }}">{{ 'Toate' if only_open else 'Doar deschise' }}</a>
+    <a class="btn primary" href="{{ url_for('table_form', table='tasks') }}">+ Sarcină</a>
+  </div>
+</div>
+
+<div class="cal">
+  {% for d in weekdays %}<div class="cal-h">{{ d }}</div>{% endfor %}
+  {% for week in weeks %}{% for day in week %}
+    {% set tasks = by_day.get(day, []) %}
+    <div class="cal-d {{ 'out' if day.month != first.month }} {{ 'today' if day == today }} {{ 'has' if tasks }}">
+      <div class="cal-n"><span class="wd">{{ weekdays[day.weekday()] }}</span> {{ day.day }}</div>
+      {% for t in tasks %}
+        <a class="cal-t {{ 'done' if t.done }} {{ 'late' if not t.done and day < today }} p-{{ t.priority|ro|lower }}"
+           href="{{ url_for('table_form', table='tasks', pk=t.id) }}"
+           title="{{ t.subject }}{% if t.client %} — {{ t.client }}{% endif %}{% if t.assignee %} ({{ t.assignee }}){% endif %}">{{ t.subject }}</a>
+      {% endfor %}
+    </div>
+  {% endfor %}{% endfor %}
+</div>
+{% if not n %}<p class="muted center">Nicio sarcină în această lună.</p>{% endif %}
+<p class="muted small legend"><span class="cal-t sample">deschisă</span> <span class="cal-t sample late">întârziată</span> <span class="cal-t sample done">făcută</span></p>
+{% endblock %}

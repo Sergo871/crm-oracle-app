@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import field %}
+{% block title %}Comanda {{ row.order_no }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Comanda nr. {{ row.order_no }} <span class="tag">{{ row.status|ro }}</span></h1>
+  <div class="actions"><a class="btn ghost" href="{{ back }}">‹ Toate comenzile</a></div>
+</div>
+
+{% if errors.get('_') %}<div class="flash err">{{ errors['_'] }}</div>{% elif errors %}<div class="flash err">Verificați câmpurile marcate.</div>{% endif %}
+
+<form method="post" class="card form" novalidate>
+  <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+  <div class="grid">
+    {% for f in T.fields %}{% if f.name != 'total' %}{{ field(f, inputs, errors, opts, sug, pk) }}{% endif %}{% endfor %}
+  </div>
+  <div class="form-actions"><button class="btn primary" type="submit">Salvează comanda</button></div>
+</form>
+
+<section class="card" id="pozitii">
+  <div class="sec-head">
+    <h2>Poziții <span class="count">{{ lines|length }}</span></h2>
+    <div class="order-total">Total: <b>{{ row.total|money }}</b> lei</div>
+  </div>
+
+  <div class="lines">
+    <div class="line head"><span>Produs</span><span class="num">Cantitate</span><span class="num">Preț</span><span class="num">Sumă</span><span></span></div>
+    {% for l in lines %}
+    <form class="line" method="post" action="{{ url_for('order_line_save', oid=pk, lid=l.id) }}">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <select name="item_id" aria-label="Produs" data-autoprice>
+        {% for it in items %}<option value="{{ it.id }}" data-price="{{ it.price }}" {{ 'selected' if it.id == l.item_id }}>{{ it.name }}{% if it.code %} ({{ it.code }}){% endif %}</option>{% endfor %}
+      </select>
+      <label class="mob">Cantitate ({{ l.unit_|ro }})</label>
+      <input class="num" name="qty" inputmode="decimal" value="{{ l.qty|num|replace(' ', '') }}" aria-label="Cantitate" data-qty>
+      <label class="mob">Preț</label>
+      <input class="num" name="price" inputmode="decimal" value="{{ l.price|num|replace(' ', '') }}" aria-label="Preț" data-pricein>
+      <span class="num sum" data-sum>{{ l.line_sum|money }}</span>
+      <span class="line-btns">
+        <button class="btn small" type="submit" title="Salvează poziția">Salvează</button>
+        <button class="btn small danger" type="submit" formaction="{{ url_for('order_line_delete', oid=pk, lid=l.id) }}" onclick="return confirm('Ștergeți poziția?')" title="Șterge poziția">✕</button>
+      </span>
+    </form>
+    {% else %}
+    <p class="muted">Comanda nu are încă poziții. Adăugați prima poziție mai jos.</p>
+    {% endfor %}
+
+    <form class="line new" method="post" action="{{ url_for('order_line_save', oid=pk) }}">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <select name="item_id" aria-label="Produs" data-autoprice required>
+        <option value="">— alegeți produsul —</option>
+        {% for it in items %}<option value="{{ it.id }}" data-price="{{ it.price }}">{{ it.name }}{% if it.code %} ({{ it.code }}){% endif %} — {{ it.price|money }}</option>{% endfor %}
+      </select>
+      <label class="mob">Cantitate</label>
+      <input class="num" name="qty" inputmode="decimal" value="1" aria-label="Cantitate" data-qty>
+      <label class="mob">Preț</label>
+      <input class="num" name="price" inputmode="decimal" placeholder="din catalog" aria-label="Preț" data-pricein>
+      <span class="num sum" data-sum></span>
+      <span class="line-btns"><button class="btn small primary" type="submit">+ Adaugă</button></span>
+    </form>
+  </div>
+  <p class="muted small">Suma poziției = cantitate × preț; totalul comenzii se recalculează automat.</p>
+</section>
+
+<div class="danger-zone">
+  <form method="post" action="{{ url_for('table_delete', table='orders', pk=pk) }}" onsubmit="return confirm('Ștergeți comanda cu toate pozițiile?')">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <button class="btn danger" type="submit">Șterge comanda</button>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  function parse(v) { return parseFloat(String(v).replace(/\s/g, '').replace(',', '.')); }
+  function fmt(n) {
+    return n.toLocaleString('ro-RO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  }
+  document.querySelectorAll('form.line').forEach(function (f) {
+    var sel = f.querySelector('[data-autoprice]'), q = f.querySelector('[data-qty]'),
+        p = f.querySelector('[data-pricein]'), s = f.querySelector('[data-sum]');
+    function upd() {
+      var price = parse(p.value);
+      if (isNaN(price) && sel.selectedOptions[0]) price = parse(sel.selectedOptions[0].dataset.price);
+      var qty = parse(q.value);
+      s.textContent = (isNaN(qty) || isNaN(price)) ? '' : fmt(Math.round(qty * price * 100) / 100);
+    }
+    sel.addEventListener('change', function () {
+      var o = sel.selectedOptions[0];
+      if (o && o.dataset.price) p.value = o.dataset.price;
+      upd();
+    });
+    q.addEventListener('input', upd); p.addEventListener('input', upd);
+  });
+})();
+</script>
+{% endblock %}

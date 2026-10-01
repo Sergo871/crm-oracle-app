@@ -1,0 +1,54 @@
+{% macro cell(f, row, table) -%}
+  {%- set v = row[f.name] -%}
+  {%- if f.type == 'money' -%}{{ v|money }}
+  {%- elif f.type in ('num', 'int') -%}{{ v|num }}
+  {%- elif f.type == 'date' -%}{{ v|fdate }}
+  {%- elif f.type == 'datetime' -%}{{ v|fdate }}
+  {%- elif f.type == 'bool' -%}{{ '✓' if v else '' }}
+  {%- elif f.type == 'choice' -%}{% if v %}<span class="tag">{{ v|ro }}</span>{% endif %}
+  {%- elif f.type == 'fk' -%}{{ row[f.name ~ '__lbl'] or '' }}
+  {%- elif f.type == 'email' and v -%}<a href="mailto:{{ v }}" onclick="event.stopPropagation()">{{ v }}</a>
+  {%- elif f.type == 'tel' and v -%}<a href="tel:{{ v|replace(' ', '') }}" onclick="event.stopPropagation()">{{ v }}</a>
+  {%- else -%}{{ v|truncate(80) if v else '' }}
+  {%- endif -%}
+{%- endmacro %}
+
+{% macro field(f, inputs, errors, opts, sug, pk=None) -%}
+  {%- set v = inputs.get(f.name, '') -%}
+  <div class="fld {{ 'wide' if f.wide or f.type == 'textarea' }} {{ 'has-err' if errors.get(f.name) }}">
+    {% if f.type == 'bool' %}
+      <label class="check"><input type="checkbox" name="{{ f.name }}" value="1" {{ 'checked' if v in ('1', 'on') }}> {{ f.label }}</label>
+    {% else %}
+      <label for="f_{{ f.name }}">{{ f.label }}{% if f.req %} <span class="req">*</span>{% endif %}</label>
+      {% if f.ro %}
+        <div class="ro-val">{{ v or '—' }}</div>
+      {% elif f.type == 'textarea' %}
+        <textarea id="f_{{ f.name }}" name="{{ f.name }}" rows="3">{{ v }}</textarea>
+      {% elif f.type == 'choice' %}
+        <select id="f_{{ f.name }}" name="{{ f.name }}" {{ 'required' if f.req }}>
+          <option value="">—</option>
+          {% set ch = CHOICES[f.choices] %}
+          {% for c in ch %}<option value="{{ c }}" {{ 'selected' if v == c }}>{{ c|ro }}</option>{% endfor %}
+          {% if v and v not in ch %}<option value="{{ v }}" selected>{{ v|ro }}</option>{% endif %}
+        </select>
+      {% elif f.type == 'fk' %}
+        <select id="f_{{ f.name }}" name="{{ f.name }}" {{ 'required' if f.req }}>
+          <option value="">— alegeți —</option>
+          {% for o in opts[f.name] %}{% if o.id|string != pk|string or f.ref != 'tasks' %}
+            <option value="{{ o.id }}" {{ 'selected' if v == o.id|string }}>{{ o.lbl|truncate(90) }}</option>
+          {% endif %}{% endfor %}
+        </select>
+      {% elif f.type == 'date' %}
+        <input id="f_{{ f.name }}" type="date" name="{{ f.name }}" value="{{ v }}" {{ 'required' if f.req }}>
+      {% elif f.type in ('num', 'money', 'int') %}
+        <input id="f_{{ f.name }}" type="text" inputmode="decimal" name="{{ f.name }}" value="{{ v }}" {{ 'required' if f.req }}>
+      {% else %}
+        <input id="f_{{ f.name }}" type="{{ 'email' if f.type == 'email' else 'tel' if f.type == 'tel' else 'text' }}"
+               name="{{ f.name }}" value="{{ v }}" {{ 'required' if f.req }}
+               {% if f.suggest %}list="dl_{{ f.name }}" autocomplete="off"{% endif %}>
+        {% if f.suggest %}<datalist id="dl_{{ f.name }}">{% for s in sug.get(f.name, []) %}<option value="{{ s }}">{% endfor %}</datalist>{% endif %}
+      {% endif %}
+    {% endif %}
+    {% if errors.get(f.name) %}<div class="err-msg">{{ errors[f.name] }}</div>{% endif %}
+  </div>
+{%- endmacro %}

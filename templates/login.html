@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block title %}Autentificare{% endblock %}
+{% block content %}
+<div class="login-box card">
+  <h1>Demo CRM</h1>
+  <p class="muted">Autentificați-vă pentru a continua.</p>
+  {% if error %}<div class="flash err">{{ error }}</div>{% endif %}
+  <form method="post">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <div class="fld"><label for="login">Utilizator</label>
+      <input id="login" name="login" autocomplete="username" autocapitalize="none" required autofocus value="{{ request.form.login or '' }}"></div>
+    <div class="fld"><label for="password">Parolă</label>
+      <input id="password" type="password" name="password" autocomplete="current-password" required></div>
+    <button class="btn primary block" type="submit">Intră</button>
+  </form>
+</div>
+{% endblock %}

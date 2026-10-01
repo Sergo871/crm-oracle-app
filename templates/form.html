@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import field %}
+{% block title %}{{ ('Adaugă ' ~ T.one) if is_new else T.title }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>{% if is_new %}{{ T.one|capitalize }} nou(ă){% else %}{{ T.one|capitalize }}: {{ (inputs.get('denumire') or inputs.get('name') or inputs.get('title') or inputs.get('subject') or pk)|truncate(70) }}{% endif %}</h1>
+  <div class="actions"><a class="btn ghost" href="{{ back }}">‹ Înapoi la listă</a></div>
+</div>
+
+{% if errors.get('_') %}<div class="flash err">{{ errors['_'] }}</div>{% elif errors %}<div class="flash err">Verificați câmpurile marcate.</div>{% endif %}
+
+<form method="post" class="card form" novalidate>
+  <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+  <input type="hidden" name="_back" value="{{ back }}">
+  <div class="grid">
+    {% for f in T.fields %}
+      {% if not (is_new and f.ro) %}{{ field(f, inputs, errors, opts, sug, pk) }}{% endif %}
+    {% endfor %}
+  </div>
+  <div class="form-actions">
+    <button class="btn primary" type="submit">Salvează</button>
+    <a class="btn ghost" href="{{ back }}">Anulează</a>
+  </div>
+</form>
+
+{% if not is_new %}
+  {% if related %}
+  <section class="card">
+    <h2>Legături</h2>
+    <div class="related">
+      {% for r in related %}
+        <a class="rel" href="{{ url_for('table_list', table=r.table, **{r.col: pk}) }}"><b>{{ r.n }}</b> {{ r.title }}</a>
+        <a class="rel add" href="{{ url_for('table_form', table=r.table, **{r.col: pk}) }}" title="Adaugă în {{ r.title }}">+</a>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+  <div class="danger-zone">
+    {% if table == 'companies' %}
+    <form method="post" action="{{ url_for('company_to_client', pk=pk) }}">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <button class="btn" type="submit">Adaugă ca client</button>
+    </form>
+    {% endif %}
+    {% if table == 'tasks' %}
+    <form method="post" action="{{ url_for('task_toggle', tid=pk) }}">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <input type="hidden" name="_back" value="{{ request.script_root ~ request.path }}">
+      <button class="btn" type="submit">{{ 'Redeschide' if inputs.get('done') == '1' else 'Marchează ca făcută' }}</button>
+    </form>
+    {% endif %}
+    <form method="post" action="{{ url_for('table_delete', table=table, pk=pk) }}" onsubmit="return confirm('Sigur ștergeți această înregistrare?')">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <button class="btn danger" type="submit">Șterge</button>
+    </form>
+  </div>
+{% endif %}
+{% endblock %}

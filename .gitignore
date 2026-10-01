@@ -1,0 +1,12 @@
+.env
+wallet/
+*.pem
+*.sso
+*.p12
+cwallet*
+ewallet*
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.log

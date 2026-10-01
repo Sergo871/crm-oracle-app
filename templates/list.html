@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import cell %}
+{% block title %}{{ T.title }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>{{ T.title }} <span class="count">{{ total }}</span></h1>
+  <div class="actions">
+    {% if table == 'tasks' %}<a class="btn" href="{{ url_for('calendar') }}">Calendar</a>{% endif %}
+    <a class="btn primary" href="{{ url_for('table_form', table=table, **prefill) }}">+ Adaugă</a>
+  </div>
+</div>
+
+<form class="toolbar" method="get">
+  <input type="search" name="q" value="{{ q }}" placeholder="Caută…" aria-label="Caută">
+  {% for fname in T.filters %}{% set f = T.by_name[fname] %}
+    <select name="{{ fname }}" onchange="this.form.submit()" aria-label="{{ f.label }}">
+      {% if f.type == 'bool' %}
+        <option value="">{{ f.label }}: toate</option>
+        <option value="0" {{ 'selected' if request.args.get(fname) == '0' }}>Deschise</option>
+        <option value="1" {{ 'selected' if request.args.get(fname) == '1' }}>Făcute</option>
+      {% else %}
+        <option value="">{{ f.label }}: toate</option>
+        {% for c in CHOICES[f.choices] %}<option value="{{ c }}" {{ 'selected' if request.args.get(fname) == c }}>{{ c|ro }}</option>{% endfor %}
+      {% endif %}
+    </select>
+  {% endfor %}
+  {% for f, lbl in chips %}<input type="hidden" name="{{ f.name }}" value="{{ request.args.get(f.name) }}">{% endfor %}
+  <input type="hidden" name="sort" value="{{ sort }}"><input type="hidden" name="dir" value="{{ direction }}">
+  <button class="btn" type="submit">Caută</button>
+  {% if filtered %}<a class="btn ghost" href="{{ url_for('table_list', table=table) }}">Resetează</a>{% endif %}
+</form>
+{% if chips %}<div class="chips">{% for f, lbl in chips %}
+  <a class="chip" href="{{ url_with(**{f.name: None, 'page': None}) }}" title="Elimină filtrul">{{ f.label }}: {{ lbl }} ✕</a>
+{% endfor %}</div>{% endif %}
+
+{% if rows %}
+<div class="table-wrap">
+<table class="list">
+  <thead><tr>
+    {% for f in cols %}
+      {% set is_sorted = sort == f.name %}
+      <th class="{{ 'num' if f.type in ('money','num','int') }}">
+        <a href="{{ url_with(sort=f.name, dir=('desc' if is_sorted and direction == 'asc' else 'asc'), page=None) }}">{{ f.label }}{% if is_sorted %} {{ '▲' if direction == 'asc' else '▼' }}{% endif %}</a>
+      </th>
+    {% endfor %}
+  </tr></thead>
+  <tbody>
+  {% for r in rows %}
+    {% set href = url_for('order_detail', oid=r.id) if table == 'orders' else url_for('table_form', table=table, pk=r[T.pk]) %}
+    <tr onclick="location.href='{{ href }}'" class="{{ 'done' if table == 'tasks' and r.done }}">
+      {% for f in cols %}
+        <td data-label="{{ f.label }}" class="{{ 'num' if f.type in ('money','num','int') }} {{ 'main' if loop.first or f.name in ('denumire','name','title','subject') }}">
+          {% if loop.first %}<a href="{{ href }}">{{ cell(f, r, table) or '—' }}</a>{% else %}{{ cell(f, r, table) }}{% endif %}
+        </td>
+      {% endfor %}
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% if pages > 1 %}
+<nav class="pager">
+  {% if page > 1 %}<a class="btn" href="{{ url_with(page=page-1) }}">‹ Înapoi</a>{% else %}<span class="btn disabled">‹ Înapoi</span>{% endif %}
+  <span>Pagina {{ page }} din {{ pages }}</span>
+  {% if page < pages %}<a class="btn" href="{{ url_with(page=page+1) }}">Înainte ›</a>{% else %}<span class="btn disabled">Înainte ›</span>{% endif %}
+</nav>
+{% endif %}
+{% else %}
+<div class="card empty">Nicio înregistrare găsită.</div>
+{% endif %}
+{% endblock %}

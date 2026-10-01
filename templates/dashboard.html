@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block title %}Panou{% endblock %}
+{% block content %}
+<div class="page-head"><h1>Panou</h1><span class="muted">{{ today|fdate }}</span></div>
+
+<div class="kpis">
+  <a class="kpi" href="{{ url_for('table_list', table='clients') }}"><span>Clienți</span><b>{{ kpi.clients }}</b></a>
+  <a class="kpi" href="{{ url_for('table_list', table='deals') }}"><span>Oferte active</span><b>{{ kpi.deals_s|money }}</b><small>{{ kpi.deals_n }} oferte · câștigate {{ kpi.won_s|money }}</small></a>
+  <a class="kpi" href="{{ url_for('table_list', table='orders') }}"><span>Comenzi în derulare</span><b>{{ kpi.orders_open }}</b></a>
+  <a class="kpi {{ 'warn' if kpi.tasks_late }}" href="{{ url_for('table_list', table='tasks', done='0') }}"><span>Sarcini deschise</span><b>{{ kpi.tasks_open }}</b><small>{% if kpi.tasks_late %}⚠ {{ kpi.tasks_late }} întârziate{% else %}niciuna întârziată{% endif %}</small></a>
+</div>
+
+<div class="dash">
+  <section class="card">
+    <h2>Oferte pe etape <span class="muted small">sumă, lei</span></h2>
+    {% for r in stages %}
+    <a class="bar-row" href="{{ url_for('table_list', table='deals', stage=r.stage) }}" title="{{ r.stage|ro }}: {{ r.n }} oferte, {{ r.s|money }} lei">
+      <span class="bar-lbl">{{ r.stage|ro or '—' }} <em>{{ r.n }}</em></span>
+      <span class="bar-track"><span class="bar" style="width: {{ (r.s / max_stage * 100)|round(1) }}%"></span></span>
+      <span class="bar-val">{{ r.s|money }}</span>
+    </a>
+    {% endfor %}
+  </section>
+
+  <section class="card">
+    <h2>Comenzi pe status <span class="muted small">total, lei</span></h2>
+    {% for r in statuses %}
+    <a class="bar-row" href="{{ url_for('table_list', table='orders', status=r.status) }}" title="{{ r.status|ro }}: {{ r.n }} comenzi, {{ r.s|money }} lei">
+      <span class="bar-lbl">{{ r.status|ro or '—' }} <em>{{ r.n }}</em></span>
+      <span class="bar-track"><span class="bar" style="width: {{ (r.s / max_status * 100)|round(1) }}%"></span></span>
+      <span class="bar-val">{{ r.s|money }}</span>
+    </a>
+    {% endfor %}
+  </section>
+
+  <section class="card">
+    <h2>Sarcini deschise <a class="small" href="{{ url_for('calendar') }}">calendar ›</a></h2>
+    <ul class="tasks">
+    {% for t in open_tasks %}
+      {% set late = t.due_at and t.due_at.date() < today %}
+      <li class="{{ 'late' if late }}">
+        <form method="post" action="{{ url_for('task_toggle', tid=t.id) }}">
+          <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+          <input type="hidden" name="_back" value="{{ request.script_root ~ request.path }}">
+          <button class="tick" type="submit" title="Marchează ca făcută" aria-label="Marchează ca făcută"></button>
+        </form>
+        <a href="{{ url_for('table_form', table='tasks', pk=t.id) }}">
+          <span class="t-subj">{{ t.subject }}</span>
+          <span class="t-meta">{{ t.due_at|fdate or 'fără termen' }}{% if late %} · întârziată{% endif %}{% if t.client %} · {{ t.client|truncate(40) }}{% endif %}{% if t.assignee %} · {{ t.assignee }}{% endif %}</span>
+        </a>
+      </li>
+    {% else %}<li class="muted">Nicio sarcină deschisă.</li>{% endfor %}
+    </ul>
+    <a class="small" href="{{ url_for('table_list', table='tasks', done='0', sort='due_at', dir='asc') }}">Toate sarcinile deschise ›</a>
+  </section>
+
+  <section class="card">
+    <h2>Top clienți <span class="muted small">după valoarea comenzilor</span></h2>
+    {% for r in top %}
+    <a class="bar-row" href="{{ url_for('table_form', table='clients', pk=r.id) }}" title="{{ r.denumire }}: {{ r.n }} comenzi, {{ r.s|money }} lei">
+      <span class="bar-lbl">{{ loop.index }}. {{ r.denumire|truncate(38) }} <em>{{ r.n }}</em></span>
+      <span class="bar-track"><span class="bar" style="width: {{ (r.s / max_top * 100)|round(1) }}%"></span></span>
+      <span class="bar-val">{{ r.s|money }}</span>
+    </a>
+    {% else %}<p class="muted">Nu există comenzi.</p>{% endfor %}
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,14 @@
+[Unit]
+Description=Demo CRM (Flask + Oracle ADB, schema CRM_DEMO)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=opc
+WorkingDirectory=/home/opc/crm-oracle-app
+ExecStart=/home/opc/crm-oracle-app/venv/bin/gunicorn -w 2 -b 127.0.0.1:5002 --access-logfile - app:app
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
