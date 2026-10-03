@@ -129,7 +129,16 @@ def initials(name):
     return "".join(p[0] for p in parts[:2]).upper()
 
 
-app.jinja_env.globals.update(csrf_token=csrf_token, url_with=url_with, nav_url=nav_url,
+def static_url(filename):
+    """URL către static/ cu versiunea fișierului (?v=mtime), ca browserul să nu țină CSS/JS vechi."""
+    try:
+        ver = int(os.path.getmtime(os.path.join(app.static_folder, filename)))
+    except OSError:
+        ver = 0
+    return url_for("static", filename=filename, v=ver)
+
+
+app.jinja_env.globals.update(csrf_token=csrf_token, url_with=url_with, nav_url=nav_url, static_url=static_url,
                              view_args=view_args, nav_badges=nav_badges,
                              stage_color=stage_color, initials=initials, NAV=NAV,
                              CHOICES=CHOICES, TABLES=TABLES, KANBAN=KANBAN)
