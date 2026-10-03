@@ -15,7 +15,7 @@ import oracledb  # noqa: E402
 from flask import (Flask, abort, flash, redirect, render_template, request,  # noqa: E402
                    session, url_for)
 from werkzeug.middleware.proxy_fix import ProxyFix  # noqa: E402
-from werkzeug.security import check_password_hash  # noqa: E402
+from werkzeug.security import check_password_hash, generate_password_hash  # noqa: E402
 
 import db  # noqa: E402
 from schema import CHOICES, LOOKUPS, NAV, RO, TABLES  # noqa: E402
@@ -131,9 +131,33 @@ def safe_next(nxt):
     return url_for("dashboard")
 
 
+# Cont demonstrativ: formularul de logare vine precompletat, se apasă doar „Intră”.
+# Se dezactivează cu DEMO_LOGIN= (gol) în .env.
+DEMO_LOGIN = os.environ.get("DEMO_LOGIN", "DEMO").strip()
+DEMO_PASSWORD = os.environ.get("DEMO_PASSWORD", "DEMO123")
+_demo_ready = False
+
+
+def ensure_demo_user():
+    """Creează/actualizează utilizatorul DEMO în tabelul users (parola doar ca hash)."""
+    global _demo_ready
+    if _demo_ready or not DEMO_LOGIN:
+        return
+    u = db.one("SELECT pass_hash FROM users WHERE login = :l", {"l": DEMO_LOGIN})
+    if not u or not check_password_hash(u["pass_hash"], DEMO_PASSWORD):
+        db.execute("""
+            MERGE INTO users u USING (SELECT :l login FROM dual) s ON (u.login = s.login)
+            WHEN MATCHED THEN UPDATE SET pass_hash = :h
+            WHEN NOT MATCHED THEN INSERT (login, pass_hash, full_name) VALUES (:l, :h, 'Demo')""",
+                   {"l": DEMO_LOGIN, "h": generate_password_hash(DEMO_PASSWORD)})
+        db.commit()
+    _demo_ready = True
+
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     error = None
+    ensure_demo_user()
     if request.method == "POST":
         login_ = request.form.get("login", "").strip()
         pwd = request.form.get("password", "")
@@ -147,7 +171,8 @@ def login():
             return redirect(safe_next(nxt))
         time.sleep(1)
         error = "Utilizator sau parolă greșită."
-    return render_template("login.html", error=error)
+    return render_template("login.html", error=error,
+                           demo_login=DEMO_LOGIN, demo_password=DEMO_PASSWORD)
 
 
 @app.route("/logout", methods=["POST"])

@@ -8,10 +8,11 @@
   <form method="post">
     <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
     <div class="fld"><label for="login">Utilizator</label>
-      <input id="login" name="login" autocomplete="username" autocapitalize="none" required autofocus value="{{ request.form.login or '' }}"></div>
+      <input id="login" name="login" autocomplete="username" autocapitalize="none" required autofocus value="{{ request.form.login or demo_login or '' }}"></div>
     <div class="fld"><label for="password">Parolă</label>
-      <input id="password" type="password" name="password" autocomplete="current-password" required></div>
+      <input id="password" type="password" name="password" autocomplete="current-password" required value="{{ demo_password if demo_login and not request.form.login else '' }}"></div>
     <button class="btn primary block" type="submit">Intră</button>
+    {% if demo_login %}<p class="muted" style="margin-top:12px;text-align:center">Cont demonstrativ: <b>{{ demo_login }}</b> / <b>{{ demo_password }}</b> — apăsați „Intră”.</p>{% endif %}
   </form>
 </div>
 {% endblock %}

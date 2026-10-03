@@ -44,6 +44,8 @@ venv/bin/python manage.py set-password director "Director"
 venv/bin/gunicorn -w 2 -b 127.0.0.1:5002 app:app
 ```
 
+Cont demonstrativ: **DEMO / DEMO123** — formularul de logare vine precompletat, se apasă doar „Intră”. Utilizatorul DEMO se creează automat în tabelul `users` (parola doar ca hash); se dezactivează cu `DEMO_LOGIN=` gol în `.env`.
+
 Conexiunea se face ca **CRM_DEMO** (nu ADMIN). Fișierul `.env` și wallet-ul nu se pun în git.
 
 ## Publicare pe VM (nginx + systemd)
