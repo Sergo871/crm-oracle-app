@@ -8,6 +8,14 @@ Online: <https://flask-hello-oracle.duckdns.org/crm/>
 
 ## Funcționalități
 
+- **Aspect în stilul Bitrix24 CRM**: meniu lateral închis cu iconițe și secțiuni (se poate
+  restrânge; pe telefon se deschide din ☰), bara de sus cu căutare globală și utilizatorul,
+  carduri albe pe fundal gri-albastru, butoane și culori de etapă ca în Bitrix24.
+- **Kanban cu drag-and-drop** (comutator Kanban/Listă): oferte după etapă (cu suma pe coloană),
+  sarcini după etapă, comenzi după status (cu total), lead-uri după status. Mutarea unui card
+  salvează noua etapă în bază (POST cu token CSRF); pe telefon: apăsare lungă și tragere sau
+  meniul ⋯ de pe card. Pentru sarcini, etapa „Gata” marchează sarcina ca făcută.
+- **Căutare globală** în clienți, contacte, lead-uri, oferte, comenzi, sarcini, proiecte etc.
 - **Panou**: oferte pe etape (număr și sumă), comenzi pe status, sarcini deschise
   (cu marcare rapidă ca făcute), top clienți după valoarea comenzilor.
 - **Liste** pentru clienți, contacte, lead-uri, oferte, proiecte, sarcini, produse și companii,
@@ -26,12 +34,12 @@ Online: <https://flask-hello-oracle.duckdns.org/crm/>
 ## Structură
 
 ```
-app.py        rute Flask (panou, liste/formulare generice, comenzi, calendar, login)
+app.py        rute Flask (panou, liste/formulare generice, Kanban, căutare, comenzi, calendar, login)
 schema.py     descrierea tabelelor: câmpuri, etichete, legături, traduceri
 db.py         pool de conexiuni python-oracledb (thin mode, wallet)
 manage.py     administrare utilizatori (set-password, list-users)
 templates/    șabloane Jinja
-static/       CSS
+static/       CSS și kanban.js (drag-and-drop)
 deploy/       unitate systemd + fragment nginx pentru /crm/
 ```
 

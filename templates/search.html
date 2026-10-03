@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import cell %}
+{% block title %}Căutare{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Căutare{% if q %}: „{{ q }}” <span class="count">{{ total }}</span>{% endif %}</h1>
+</div>
+{% if not q %}
+  <div class="card empty">Scrieți un text în câmpul de căutare de sus (nume, IDNO, telefon, e-mail…).</div>
+{% elif not groups %}
+  <div class="card empty">Nimic găsit pentru „{{ q }}”.</div>
+{% endif %}
+<div class="search-groups">
+{% for g in groups %}
+  <section class="card">
+    <h2>{{ g.T.title }} <span class="count">{{ g.n }}</span>
+      {% if g.n > g.rows|length %}<a class="small" href="{{ url_for('table_list', table=g.table, q=q) }}">toate ›</a>{% endif %}</h2>
+    <ul class="hits">
+      {% for r in g.rows %}
+      <li><a href="{{ r.href }}">
+        <span class="hit-t">{{ cell(g.cols[0], r, g.table) or '—' }}</span>
+        <span class="hit-m">{% for f in g.cols[1:] %}{% set v = cell(f, r, g.table)|striptags|trim %}{% if v %}<span>{{ v }}</span>{% endif %}{% endfor %}</span>
+      </a></li>
+      {% endfor %}
+    </ul>
+  </section>
+{% endfor %}
+</div>
+{% endblock %}

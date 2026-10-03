@@ -1,37 +1,11 @@
 {% extends 'base.html' %}
-{% from '_macros.html' import cell %}
+{% from '_macros.html' import cell, page_head, toolbar, chip_row %}
 {% block title %}{{ T.title }}{% endblock %}
 {% block content %}
-<div class="page-head">
-  <h1>{{ T.title }} <span class="count">{{ total }}</span></h1>
-  <div class="actions">
-    {% if table == 'tasks' %}<a class="btn" href="{{ url_for('calendar') }}">Calendar</a>{% endif %}
-    <a class="btn primary" href="{{ url_for('table_form', table=table, **prefill) }}">+ Adaugă</a>
-  </div>
-</div>
-
-<form class="toolbar" method="get">
-  <input type="search" name="q" value="{{ q }}" placeholder="Caută…" aria-label="Caută">
-  {% for fname in T.filters %}{% set f = T.by_name[fname] %}
-    <select name="{{ fname }}" onchange="this.form.submit()" aria-label="{{ f.label }}">
-      {% if f.type == 'bool' %}
-        <option value="">{{ f.label }}: toate</option>
-        <option value="0" {{ 'selected' if request.args.get(fname) == '0' }}>Deschise</option>
-        <option value="1" {{ 'selected' if request.args.get(fname) == '1' }}>Făcute</option>
-      {% else %}
-        <option value="">{{ f.label }}: toate</option>
-        {% for c in CHOICES[f.choices] %}<option value="{{ c }}" {{ 'selected' if request.args.get(fname) == c }}>{{ c|ro }}</option>{% endfor %}
-      {% endif %}
-    </select>
-  {% endfor %}
-  {% for f, lbl in chips %}<input type="hidden" name="{{ f.name }}" value="{{ request.args.get(f.name) }}">{% endfor %}
-  <input type="hidden" name="sort" value="{{ sort }}"><input type="hidden" name="dir" value="{{ direction }}">
-  <button class="btn" type="submit">Caută</button>
-  {% if filtered %}<a class="btn ghost" href="{{ url_for('table_list', table=table) }}">Resetează</a>{% endif %}
-</form>
-{% if chips %}<div class="chips">{% for f, lbl in chips %}
-  <a class="chip" href="{{ url_with(**{f.name: None, 'page': None}) }}" title="Elimină filtrul">{{ f.label }}: {{ lbl }} ✕</a>
-{% endfor %}</div>{% endif %}
+{% call page_head(T, table, total, 'list', prefill) %}
+  {{ toolbar(T, table, q, chips, filtered, 'table_list', sort=sort, direction=direction) }}
+{% endcall %}
+{{ chip_row(chips) }}
 
 {% if rows %}
 <div class="table-wrap">

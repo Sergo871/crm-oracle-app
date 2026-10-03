@@ -227,9 +227,40 @@ for _key, _t in TABLES.items():
     _t.setdefault("related", [])
     _t["by_name"] = {f["name"]: f for f in _t["fields"]}
 
+# Meniul lateral: (sectiune, [(cheie, eticheta, iconita)])
 NAV = [
-    ("dashboard", "Panou"), ("clients", "Clienți"), ("contacts", "Contacte"),
-    ("leads", "Lead-uri"), ("deals", "Oferte"), ("orders", "Comenzi"),
-    ("projects", "Proiecte"), ("tasks", "Sarcini"), ("calendar", "Calendar"),
-    ("items", "Produse"), ("companies", "Companii"),
+    ("CRM", [("dashboard", "Panou", "home"), ("deals", "Oferte", "deal"),
+             ("leads", "Lead-uri", "lead"), ("clients", "Clienți", "company"),
+             ("contacts", "Contacte", "contact"), ("orders", "Comenzi", "cart")]),
+    ("Activitate", [("tasks", "Sarcini", "task"), ("calendar", "Calendar", "calendar"),
+                    ("projects", "Proiecte", "project")]),
+    ("Catalog", [("items", "Produse", "box"), ("companies", "Registru companii", "registry")]),
 ]
+
+# Vederi Kanban: coloana dupa care se grupeaza cardurile, suma afisata pe coloana,
+# campurile afisate pe card (dupa titlu).
+KANBAN = {
+    "deals": dict(field="stage", sum="amount", title="title",
+                  meta=["client_id", "close_date"]),
+    "leads": dict(field="status", title="name", meta=["company", "source", "phone", "created_at"]),
+    "orders": dict(field="status", sum="total", title="order_no",
+                   meta=["client_id", "kind", "order_date"]),
+    "tasks": dict(field="stage", title="subject", order=("due_at", "asc"),
+                  meta=["client_id", "assignee", "priority", "due_at"]),
+}
+
+# Culorile etapelor (capetele coloanelor Kanban, etichetele din liste)
+_BLUE, _CYAN, _TEAL, _ORANGE, _GREEN, _RED, _GREY = (
+    "#39a8ef", "#2fc6f6", "#55d0e0", "#ffa900", "#7bd500", "#ff5752", "#a8adb4")
+STAGE_COLORS = {
+    "deal_stage": {"Новая": _BLUE, "Предложение": _CYAN, "Переговоры": _ORANGE,
+                   "Выиграна": _GREEN, "Проиграна": _RED},
+    "lead_status": {"Новый": _BLUE, "В работе": _ORANGE, "Конвертирован": _GREEN, "Отказ": _RED},
+    "order_status": {"Черновик": _GREY, "Подтверждён": _BLUE, "В работе": _ORANGE,
+                     "Выполнен": _TEAL, "Оплачен": _GREEN, "Отменён": _RED},
+    "task_stage": {"Новая": _BLUE, "В работе": _ORANGE, "Ожидание": _GREY, "Готово": _GREEN},
+    "project_status": {"Тендер": _GREY, "Договор": _BLUE, "Аванс": _CYAN, "Дизайн": _TEAL,
+                       "Производство": _ORANGE, "Сдача": "#9f7aea", "Оплата": "#2fc6f6",
+                       "Закрыт": _GREEN, "Проигран": _RED},
+    "priority": {"Низкий": _GREY, "Обычный": _BLUE, "Высокий": _ORANGE, "Срочно": _RED},
+}

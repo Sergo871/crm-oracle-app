@@ -12,13 +12,13 @@ from dotenv import load_dotenv
 load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
 
 import oracledb  # noqa: E402
-from flask import (Flask, abort, flash, redirect, render_template, request,  # noqa: E402
-                   session, url_for)
+from flask import (Flask, abort, flash, jsonify, redirect, render_template,  # noqa: E402
+                   request, session, url_for)
 from werkzeug.middleware.proxy_fix import ProxyFix  # noqa: E402
 from werkzeug.security import check_password_hash, generate_password_hash  # noqa: E402
 
 import db  # noqa: E402
-from schema import CHOICES, LOOKUPS, NAV, RO, TABLES  # noqa: E402
+from schema import CHOICES, KANBAN, LOOKUPS, NAV, RO, STAGE_COLORS, TABLES  # noqa: E402
 
 app = Flask(__name__)
 # nginx: location /crm/ -> proxy_pass http://127.0.0.1:5002/ + X-Forwarded-Prefix /crm
@@ -34,6 +34,7 @@ app.config.update(
 app.teardown_appcontext(db.close)
 
 PER_PAGE = 20
+KANBAN_PER_COLUMN = 50
 MONTHS = ["", "Ianuarie", "Februarie", "Martie", "Aprilie", "Mai", "Iunie", "Iulie",
           "August", "Septembrie", "Octombrie", "Noiembrie", "Decembrie"]
 WEEKDAYS = ["Lu", "Ma", "Mi", "Jo", "Vi", "Sâ", "Du"]
@@ -89,14 +90,49 @@ def url_with(**kw):
     return url_for(request.endpoint, **args)
 
 
+def view_args():
+    """Argumentele GET pastrate la comutarea Lista/Kanban (cautarea si filtrele)."""
+    return {k: v for k, v in request.args.items() if k not in ("page", "sort", "dir")}
+
+
 def nav_url(key):
     if key in ("dashboard", "calendar"):
         return url_for(key)
+    if key in KANBAN and session.get("views", {}).get(key) == "kanban":
+        return url_for("table_kanban", table=key)
     return url_for("table_list", table=key)
 
 
+def remember_view(table, view):
+    """Meniul lateral deschide ultima vedere aleasa (Lista/Kanban) pentru fiecare tabel."""
+    views = session.get("views", {})
+    if views.get(table) != view:
+        session["views"] = dict(views, **{table: view})
+
+
+def stage_color(choices, v):
+    return STAGE_COLORS.get(choices, {}).get(v, "")
+
+
+def nav_badges():
+    """Contoare in meniul lateral (ca in Bitrix24): sarcini intarziate."""
+    try:
+        late = db.scalar("SELECT COUNT(*) FROM tasks"
+                         " WHERE NVL(done,0) = 0 AND due_at < TRUNC(SYSDATE)")
+    except oracledb.DatabaseError:
+        return {}
+    return {"tasks": late} if late else {}
+
+
+def initials(name):
+    parts = (name or "?").split()
+    return "".join(p[0] for p in parts[:2]).upper()
+
+
 app.jinja_env.globals.update(csrf_token=csrf_token, url_with=url_with, nav_url=nav_url,
-                             NAV=NAV, CHOICES=CHOICES, TABLES=TABLES)
+                             view_args=view_args, nav_badges=nav_badges,
+                             stage_color=stage_color, initials=initials, NAV=NAV,
+                             CHOICES=CHOICES, TABLES=TABLES, KANBAN=KANBAN)
 
 
 @app.context_processor
@@ -114,13 +150,20 @@ PUBLIC = {"login", "static"}
 
 @app.before_request
 def guard():
+    # cererile fetch() (mutarea cardurilor Kanban) primesc erorile ca JSON
+    is_fetch = request.headers.get("X-Requested-With") == "fetch"
     if request.method == "POST":
         sent = request.form.get("_csrf", "")
         if not sent or not secrets.compare_digest(sent, session.get("csrf", "")):
-            abort(400, "Token CSRF invalid — reîncărcați pagina.")
+            msg = "Token CSRF invalid — reîncărcați pagina."
+            if is_fetch:
+                return jsonify(ok=False, error=msg), 400
+            abort(400, msg)
     if request.endpoint in PUBLIC or request.endpoint is None:
         return None
     if not session.get("uid"):
+        if is_fetch:
+            return jsonify(ok=False, error="Sesiunea a expirat — autentificați-vă din nou."), 401
         return redirect(url_for("login", next=request.full_path))
     return None
 
@@ -254,12 +297,9 @@ def fk_label(ref, rid):
     return db.scalar(f"SELECT {LOOKUPS[ref]} FROM {ref} WHERE id = :i", {"i": rid})
 
 
-@app.route("/<table>/")
-def table_list(table):
-    T = get_table(table)
+def build_filters(T, args, q):
+    """Conditiile WHERE pentru cautarea q si filtrele din args (liste, Kanban, cautare)."""
     where, binds, chips = [], {}, []
-
-    q = request.args.get("q", "").strip()
     if q:
         binds["q"] = "%" + like_escape(q.upper()) + "%"
         ors = []
@@ -279,10 +319,10 @@ def table_list(table):
                     ors.append(f"{f['name']} IN ({', '.join(names)})")
             else:
                 ors.append(f"UPPER({f['name']}) LIKE :q ESCAPE '\\'")
-        where.append("(" + " OR ".join(ors) + ")")
+        where.append("(" + (" OR ".join(ors) or "1 = 0") + ")")
 
     for f in T["fields"]:
-        v = request.args.get(f["name"], "")
+        v = args.get(f["name"], "")
         if v == "":
             continue
         if f["type"] == "fk" and v.isdigit():
@@ -295,6 +335,29 @@ def table_list(table):
         elif f["type"] == "bool" and v in ("0", "1"):
             where.append(f"NVL({f['name']},0) = :f_{f['name']}")
             binds[f"f_{f['name']}"] = int(v)
+    return where, binds, chips
+
+
+def filtered_base(T, where):
+    base = f"SELECT * FROM ({inner_select(T)})"
+    if where:
+        base += " WHERE " + " AND ".join(where)
+    return base
+
+
+def row_href(table, T, r):
+    if table == "orders":
+        return url_for("order_detail", oid=r["id"])
+    return url_for("table_form", table=table, pk=r[T["pk"]])
+
+
+@app.route("/<table>/")
+def table_list(table):
+    T = get_table(table)
+    if table in KANBAN:
+        remember_view(table, "list")
+    q = request.args.get("q", "").strip()
+    where, binds, chips = build_filters(T, request.args, q)
 
     cols = [f for f in T["fields"] if f.get("list")]
     sort = request.args.get("sort", T["sort"][0])
@@ -306,9 +369,7 @@ def table_list(table):
     if T["by_name"][sort]["type"] in ("text", "tel", "email", "fk"):
         sort_expr = f"NLSSORT({sort_expr}, 'NLS_SORT=GENERIC_M_CI')"
 
-    base = f"SELECT * FROM ({inner_select(T)})"
-    if where:
-        base += " WHERE " + " AND ".join(where)
+    base = filtered_base(T, where)
     total = db.scalar(f"SELECT COUNT(*) FROM ({base})", binds)
     pages = max(1, (total + PER_PAGE - 1) // PER_PAGE)
     try:
@@ -656,6 +717,108 @@ def order_line_delete(oid, lid):
     db.commit()
     flash("Poziția a fost ștearsă.", "ok")
     return redirect(url_for("order_detail", oid=oid) + "#pozitii")
+
+
+# ---------------------------------------------------------------- Kanban
+
+@app.route("/<table>/kanban")
+def table_kanban(table):
+    T = get_table(table)
+    K = KANBAN.get(table)
+    if not K:
+        abort(404)
+    remember_view(table, "kanban")
+    fld = K["field"]
+    choices_key = T["by_name"][fld]["choices"]
+    choices = CHOICES[choices_key]
+    q = request.args.get("q", "").strip()
+    args = {k: v for k, v in request.args.items() if k != fld}  # coloanele sunt chiar etapele
+    where, binds, chips = build_filters(T, args, q)
+    base = filtered_base(T, where)
+
+    sum_expr = f"NVL(SUM({K['sum']}),0)" if K.get("sum") else "0"
+    stats = {r["v"]: r for r in db.query(
+        f"SELECT {fld} v, COUNT(*) n, {sum_expr} s FROM ({base}) GROUP BY {fld}", binds)}
+    order, direction = K.get("order", T["sort"])
+    rows = db.query(f"""
+        SELECT * FROM (
+          SELECT b.*, ROW_NUMBER() OVER (PARTITION BY {fld}
+                 ORDER BY {order} {direction} NULLS LAST, {T['pk']}) kb_rn
+            FROM ({base}) b)
+         WHERE kb_rn <= :lim ORDER BY kb_rn""", dict(binds, lim=KANBAN_PER_COLUMN))
+    cards = defaultdict(list)
+    for r in rows:
+        r["href"] = row_href(table, T, r)
+        cards[r[fld]].append(r)
+
+    # etapele cunoscute, in ordinea procesului; valorile necunoscute/goale la sfarsit
+    columns = []
+    for v in choices + [v for v in stats if v not in choices]:
+        st = stats.get(v, {})
+        columns.append(dict(value=v or "", label=ro(v) if v else "Fără etapă",
+                            color=stage_color(choices_key, v) or "#a8adb4",
+                            n=st.get("n", 0), s=st.get("s", 0), cards=cards.get(v, []),
+                            drop=v in choices))
+    return render_template("kanban.html", T=T, K=K, table=table, columns=columns,
+                           meta=[T["by_name"][m] for m in K["meta"]], q=q, chips=chips,
+                           total=sum(c["n"] for c in columns),
+                           filtered=bool(q or chips or any(args.get(n) for n in T["filters"])),
+                           prefill={f["name"]: request.args[f["name"]] for f, _ in chips})
+
+
+@app.route("/<table>/<pk>/move", methods=["POST"])
+def kanban_move(table, pk):
+    """Mutarea unui card Kanban: salveaza noua etapa/status (apel fetch, raspuns JSON)."""
+    T = get_table(table)
+    K = KANBAN.get(table)
+    if not K:
+        abort(404)
+    pk = conv_pk(T, pk)
+    fld = K["field"]
+    v = request.form.get("value", "")
+    if v not in CHOICES[T["by_name"][fld]["choices"]]:
+        return jsonify(ok=False, error="Etapă necunoscută."), 400
+    sets = f"{fld} = :v"
+    if table == "tasks":  # ca butonul „Marchează ca făcută”: etapa Gata <=> făcută
+        sets += ", done = CASE WHEN :v = 'Готово' THEN 1 ELSE 0 END"
+    try:
+        n = db.execute(f"UPDATE {T['table']} SET {sets} WHERE {T['pk']} = :pk",
+                       {"v": v, "pk": pk})
+        db.commit()
+    except oracledb.DatabaseError as e:
+        return jsonify(ok=False, error=db_error(e)), 500
+    if not n:
+        return jsonify(ok=False, error="Înregistrarea nu mai există."), 404
+    return jsonify(ok=True, value=v, label=ro(v))
+
+
+# ---------------------------------------------------------------- cautare globala
+
+SEARCH_TABLES = ["clients", "contacts", "leads", "deals", "orders", "tasks", "projects",
+                 "items", "companies"]
+
+
+@app.route("/search")
+def search():
+    q = request.args.get("q", "").strip()
+    groups = []
+    if q:
+        for table in SEARCH_TABLES:
+            T = TABLES[table]
+            where, binds, _ = build_filters(T, {}, q)
+            base = filtered_base(T, where)
+            n = db.scalar(f"SELECT COUNT(*) FROM ({base})", binds)
+            if not n:
+                continue
+            sort, direction = T["sort"]
+            rows = db.query(f"{base} ORDER BY {sort} {direction} NULLS LAST, {T['pk']}"
+                            f" FETCH FIRST 5 ROWS ONLY", binds)
+            for r in rows:
+                r["href"] = row_href(table, T, r)
+            groups.append(dict(table=table, T=T, n=n, rows=rows,
+                               cols=[f for f in T["fields"] if f.get("list")][:4]))
+    return render_template("search.html", q=q, groups=groups,
+                           total=sum(g["n"] for g in groups))
 
 
 # ---------------------------------------------------------------- calendar sarcini

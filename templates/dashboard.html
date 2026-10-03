@@ -16,7 +16,7 @@
     {% for r in stages %}
     <a class="bar-row" href="{{ url_for('table_list', table='deals', stage=r.stage) }}" title="{{ r.stage|ro }}: {{ r.n }} oferte, {{ r.s|money }} lei">
       <span class="bar-lbl">{{ r.stage|ro or '—' }} <em>{{ r.n }}</em></span>
-      <span class="bar-track"><span class="bar" style="width: {{ (r.s / max_stage * 100)|round(1) }}%"></span></span>
+      <span class="bar-track"><span class="bar" style="width: {{ (r.s / max_stage * 100)|round(1) }}%; --c: {{ stage_color('deal_stage', r.stage) or 'var(--bar)' }}"></span></span>
       <span class="bar-val">{{ r.s|money }}</span>
     </a>
     {% endfor %}
@@ -27,7 +27,7 @@
     {% for r in statuses %}
     <a class="bar-row" href="{{ url_for('table_list', table='orders', status=r.status) }}" title="{{ r.status|ro }}: {{ r.n }} comenzi, {{ r.s|money }} lei">
       <span class="bar-lbl">{{ r.status|ro or '—' }} <em>{{ r.n }}</em></span>
-      <span class="bar-track"><span class="bar" style="width: {{ (r.s / max_status * 100)|round(1) }}%"></span></span>
+      <span class="bar-track"><span class="bar" style="width: {{ (r.s / max_status * 100)|round(1) }}%; --c: {{ stage_color('order_status', r.status) or 'var(--bar)' }}"></span></span>
       <span class="bar-val">{{ r.s|money }}</span>
     </a>
     {% endfor %}

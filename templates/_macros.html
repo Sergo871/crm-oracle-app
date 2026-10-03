@@ -1,3 +1,4 @@
+{% from '_icons.html' import icon %}
 {% macro cell(f, row, table) -%}
   {%- set v = row[f.name] -%}
   {%- if f.type == 'money' -%}{{ v|money }}
@@ -5,7 +6,7 @@
   {%- elif f.type == 'date' -%}{{ v|fdate }}
   {%- elif f.type == 'datetime' -%}{{ v|fdate }}
   {%- elif f.type == 'bool' -%}{{ '✓' if v else '' }}
-  {%- elif f.type == 'choice' -%}{% if v %}<span class="tag">{{ v|ro }}</span>{% endif %}
+  {%- elif f.type == 'choice' -%}{% if v %}{% set c = stage_color(f.choices, v) %}<span class="tag {{ 'dot' if c }}"{% if c %} style="--c: {{ c }}"{% endif %}>{{ v|ro }}</span>{% endif %}
   {%- elif f.type == 'fk' -%}{{ row[f.name ~ '__lbl'] or '' }}
   {%- elif f.type == 'email' and v -%}<a href="mailto:{{ v }}" onclick="event.stopPropagation()">{{ v }}</a>
   {%- elif f.type == 'tel' and v -%}<a href="tel:{{ v|replace(' ', '') }}" onclick="event.stopPropagation()">{{ v }}</a>
@@ -51,4 +52,49 @@
     {% endif %}
     {% if errors.get(f.name) %}<div class="err-msg">{{ errors[f.name] }}</div>{% endif %}
   </div>
+{%- endmacro %}
+
+{% macro page_head(T, table, total, view, prefill) -%}
+<div class="page-head">
+  <h1>{{ T.title }} <span class="count">{{ total }}</span></h1>
+  <a class="btn success" href="{{ url_for('table_form', table=table, **prefill) }}">{{ icon('plus') }} Adaugă</a>
+  {{ caller() }}
+</div>
+{% if table in KANBAN or table == 'tasks' %}
+<div class="view-tabs">
+  {% if table in KANBAN %}
+  <a class="vt {{ 'on' if view == 'kanban' }}" href="{{ url_for('table_kanban', table=table, **view_args()) }}">{{ icon('kanban') }} Kanban</a>
+  <a class="vt {{ 'on' if view == 'list' }}" href="{{ url_for('table_list', table=table, **view_args()) }}">{{ icon('list') }} Listă</a>
+  {% endif %}
+  {% if table == 'tasks' %}<a class="vt" href="{{ url_for('calendar') }}">{{ icon('calendar') }} Calendar</a>{% endif %}
+</div>
+{% endif %}
+{%- endmacro %}
+
+{% macro toolbar(T, table, q, chips, filtered, endpoint, skip=None, sort=None, direction=None) -%}
+<form class="toolbar" method="get" action="{{ url_for(endpoint, table=table) }}">
+  <input type="search" name="q" value="{{ q }}" placeholder="Filtru + căutare" aria-label="Caută">
+  {% for fname in T.filters if fname != skip %}{% set f = T.by_name[fname] %}
+    <select name="{{ fname }}" onchange="this.form.submit()" aria-label="{{ f.label }}">
+      {% if f.type == 'bool' %}
+        <option value="">{{ f.label }}: toate</option>
+        <option value="0" {{ 'selected' if request.args.get(fname) == '0' }}>Deschise</option>
+        <option value="1" {{ 'selected' if request.args.get(fname) == '1' }}>Făcute</option>
+      {% else %}
+        <option value="">{{ f.label }}: toate</option>
+        {% for c in CHOICES[f.choices] %}<option value="{{ c }}" {{ 'selected' if request.args.get(fname) == c }}>{{ c|ro }}</option>{% endfor %}
+      {% endif %}
+    </select>
+  {% endfor %}
+  {% for f, lbl in chips %}<input type="hidden" name="{{ f.name }}" value="{{ request.args.get(f.name) }}">{% endfor %}
+  {% if sort %}<input type="hidden" name="sort" value="{{ sort }}"><input type="hidden" name="dir" value="{{ direction }}">{% endif %}
+  <button class="btn" type="submit">Caută</button>
+  {% if filtered %}<a class="btn ghost" href="{{ url_for(endpoint, table=table) }}">Resetează</a>{% endif %}
+</form>
+{%- endmacro %}
+
+{% macro chip_row(chips) -%}
+{% if chips %}<div class="chips">{% for f, lbl in chips %}
+  <a class="chip" href="{{ url_with(**{f.name: None, 'page': None}) }}" title="Elimină filtrul">{{ f.label }}: {{ lbl }} ✕</a>
+{% endfor %}</div>{% endif %}
 {%- endmacro %}

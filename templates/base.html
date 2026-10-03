@@ -5,31 +5,85 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}Demo CRM{% endblock %} · Demo CRM</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%232f6fdf'/><text x='16' y='22' font-size='16' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'>C</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%232fc6f6'/><text x='16' y='22' font-size='16' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'>C</text></svg>">
+<script>try { if (localStorage.getItem('crm-side-mini') === '1') document.documentElement.classList.add('side-mini'); } catch (e) {}</script>
 </head>
-<body>
+{% from '_icons.html' import icon %}
+<body class="{{ 'app' if session.uid else 'guest' }}">
 {% if session.uid %}
-<header class="top">
-  <a class="brand" href="{{ url_for('dashboard') }}">Demo CRM</a>
-  <input type="checkbox" id="nav-toggle" class="nav-toggle">
-  <label for="nav-toggle" class="burger" aria-label="Meniu">☰</label>
-  <nav class="nav">
-    {% for key, label in NAV %}
-      <a href="{{ nav_url(key) }}" class="{{ 'on' if active == key }}">{{ label }}</a>
+{% set badges = nav_badges() %}
+<input type="checkbox" id="nav-toggle" class="nav-toggle" aria-hidden="true" tabindex="-1">
+<aside class="side" aria-label="Meniu principal">
+  <a class="logo" href="{{ url_for('dashboard') }}"><span class="logo-a">Demo</span><span class="logo-b">CRM</span></a>
+  <nav class="side-nav">
+    {% for section, items in NAV %}
+      <div class="side-sec">{{ section }}</div>
+      {% for key, label, ic in items %}
+        <a href="{{ nav_url(key) }}" class="side-link {{ 'on' if active == key }}" title="{{ label }}">
+          {{ icon(ic) }}<span class="side-lbl">{{ label }}</span>
+          {% if badges.get(key) %}<b class="badge" title="întârziate">{{ badges[key] }}</b>{% endif %}
+        </a>
+      {% endfor %}
     {% endfor %}
-    <form method="post" action="{{ url_for('logout') }}" class="logout">
-      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-      <button type="submit" class="link">Ieșire · {{ session.name }}</button>
-    </form>
   </nav>
-</header>
-{% endif %}
+  <button type="button" class="side-collapse" id="side-collapse" title="Restrânge / extinde meniul">
+    {{ icon('chevron') }}<span class="side-lbl">Restrânge meniul</span>
+  </button>
+</aside>
+<label for="nav-toggle" class="side-shade" aria-hidden="true"></label>
+
+<div class="shell">
+  <header class="topbar">
+    <label for="nav-toggle" class="burger" aria-label="Meniu">{{ icon('menu') }}</label>
+    <form class="gsearch" method="get" action="{{ url_for('search') }}" role="search">
+      {{ icon('search') }}
+      <input type="search" name="q" value="{{ request.args.get('q', '') if request.endpoint == 'search' }}"
+             placeholder="Caută clienți, oferte, sarcini…" aria-label="Căutare globală">
+    </form>
+    <div class="top-right">
+      <a class="top-ico" href="{{ url_for('calendar') }}" title="Calendar">{{ icon('calendar') }}</a>
+      <details class="user">
+        <summary><span class="ava">{{ initials(session.name) }}</span><span class="uname">{{ session.name }}</span><span class="caret">▾</span></summary>
+        <div class="user-menu">
+          <div class="um-head"><span class="ava big">{{ initials(session.name) }}</span><b>{{ session.name }}</b></div>
+          <form method="post" action="{{ url_for('logout') }}">
+            <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+            <button type="submit" class="um-item">{{ icon('logout') }} Ieșire</button>
+          </form>
+        </div>
+      </details>
+    </div>
+  </header>
+  <main class="wrap {% block wrap_class %}{% endblock %}">
+    {% with msgs = get_flashed_messages(with_categories=true) %}
+      {% for cat, m in msgs %}<div class="flash {{ cat }}">{{ m }}</div>{% endfor %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+</div>
+<script>
+(function () {
+  var b = document.getElementById('side-collapse'), root = document.documentElement;
+  b.addEventListener('click', function () {
+    var mini = root.classList.toggle('side-mini');
+    try { localStorage.setItem('crm-side-mini', mini ? '1' : '0'); } catch (e) {}
+  });
+  // meniul utilizatorului se inchide la click in afara lui
+  document.addEventListener('click', function (e) {
+    document.querySelectorAll('details.user[open]').forEach(function (d) {
+      if (!d.contains(e.target)) d.removeAttribute('open');
+    });
+  });
+})();
+</script>
+{% else %}
 <main class="wrap">
   {% with msgs = get_flashed_messages(with_categories=true) %}
     {% for cat, m in msgs %}<div class="flash {{ cat }}">{{ m }}</div>{% endfor %}
   {% endwith %}
-  {% block content %}{% endblock %}
+  {{ self.content() }}
 </main>
+{% endif %}
 {% block scripts %}{% endblock %}
 </body>
 </html>

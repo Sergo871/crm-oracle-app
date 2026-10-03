@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import cell, page_head, toolbar, chip_row %}
+{% from '_icons.html' import icon %}
+{% block title %}{{ T.title }} · Kanban{% endblock %}
+{% block wrap_class %}wide{% endblock %}
+{% block content %}
+{% call page_head(T, table, total, 'kanban', prefill) %}
+  {{ toolbar(T, table, q, chips, filtered, 'table_kanban', skip=K.field) }}
+{% endcall %}
+{{ chip_row(chips) }}
+
+<div class="kanban" id="kanban" data-csrf="{{ csrf_token() }}" data-has-sum="{{ '1' if K.sum }}" data-table="{{ table }}">
+  {% for col in columns %}
+  <section class="kb-col {{ 'nodrop' if not col.drop }}" data-value="{{ col.value }}" data-label="{{ col.label }}" style="--c: {{ col.color }}">
+    <header class="kb-head">
+      <span class="kb-title" title="{{ col.label }}">{{ col.label }}</span>
+      <span class="kb-n" data-n="{{ col.n }}">{{ col.n }}</span>
+    </header>
+    {% if K.sum %}<div class="kb-sum" data-total="{{ col.s }}">{{ col.s|money }} <small>lei</small></div>{% endif %}
+    {% if col.drop %}
+    <a class="kb-add" href="{{ url_for('table_form', table=table, **dict(prefill, **{K.field: col.value})) }}" title="Adaugă în „{{ col.label }}”">{{ icon('plus') }}</a>
+    {% endif %}
+    <div class="kb-cards">
+      {% for r in col.cards %}
+      {% set late = table == 'tasks' and not r.done and r.due_at and r.due_at.date() < today %}
+      <article class="kb-card {{ 'done' if table == 'tasks' and r.done }} {{ 'late' if late }}"
+               data-url="{{ url_for('kanban_move', table=table, pk=r[T.pk]) }}"
+               data-amount="{{ r[K.sum] if K.sum and r[K.sum] is not none else 0 }}">
+        <div class="kb-card-top">
+          <a class="kb-t" href="{{ r.href }}" draggable="false">{% if table == 'orders' %}Comanda nr. {{ r.order_no }}{% else %}{{ r[K.title] or '—' }}{% endif %}</a>
+          {% if columns|selectattr('drop')|list|length > 1 %}
+          <button type="button" class="kb-menu" aria-label="Mută în altă etapă" title="Mută în altă etapă">{{ icon('dots') }}</button>
+          {% endif %}
+        </div>
+        {% if K.sum %}<div class="kb-amt">{{ r[K.sum]|money or '0,00' }} lei</div>{% endif %}
+        {% for f in meta %}{% set v = cell(f, r, table)|trim %}{% if v %}
+          <div class="kb-meta {{ 'late' if late and f.name == 'due_at' }}"><span>{{ f.label }}:</span> {{ v }}</div>
+        {% endif %}{% endfor %}
+      </article>
+      {% endfor %}
+    </div>
+    {% if col.n > col.cards|length %}
+      <a class="kb-more" href="{{ url_for('table_list', table=table, **dict(view_args(), **{K.field: col.value})) }}">+ încă {{ col.n - col.cards|length }} în listă ›</a>
+    {% elif not col.n %}
+      <div class="kb-empty">Trageți un card aici</div>
+    {% endif %}
+  </section>
+  {% endfor %}
+</div>
+<div class="kb-toast" id="kb-toast" role="status" aria-live="polite"></div>
+<p class="muted small kb-hint">Trageți cardurile între coloane pentru a schimba etapa (pe telefon: țineți apăsat pe card, apoi trageți, sau folosiți butonul ⋯).</p>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='kanban.js') }}"></script>
+{% endblock %}
