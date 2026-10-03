@@ -1,5 +1,7 @@
 /* Demo CRM — aspect inspirat din Bitrix24 CRM: meniu lateral inchis cu iconite,
-   bara de sus cu cautare, carduri albe pe fundal gri-albastrui, Kanban pe etape. */
+   bara de sus cu cautare, carduri albe pe fundal gri-albastrui, Kanban pe etape.
+   Tema luminoasa e implicita pentru toti, indiferent de tema sistemului/browserului;
+   tema intunecata se alege doar din meniul utilizatorului (html[data-theme="dark"]). */
 :root {
   --bg: #eef2f4; --surface: #ffffff; --surface-2: #f5f7f8; --line: #e3e8ec; --line-2: #d5dce1;
   --ink: #333333; --ink-2: #535c69; --muted: #828b95;
@@ -13,23 +15,21 @@
   --warn: #d77f00; --late: #e0362f; --done: #9aa3ad;
   --radius: 12px; --shadow: 0 1px 2px rgba(83, 92, 105, .08), 0 2px 6px rgba(83, 92, 105, .05);
   --side-w: 240px; --side-mini-w: 66px; --top-h: 60px;
-  color-scheme: light;
+  color-scheme: only light;  /* "only" opreste si intunecarea automata a paginilor din Chrome */
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #131a21; --surface: #1c252e; --surface-2: #232e39; --line: #2c3946; --line-2: #3a4855;
-    --ink: #e6ebef; --ink-2: #b8c2cc; --muted: #8c98a4;
-    --link: #6fb4f5;
-    --accent: #2fc6f6; --accent-ink: #0b1a22; --accent-soft: #163645; --accent-strong: #5fd5fa;
-    --success: #a5d61c; --success-hover: #b9e639; --success-ink: #1b2410;
-    --side: #0f161d; --side-2: #1b2631; --side-ink: #aeb8c2; --side-sec: #66727e;
-    --top: #1a232c;
-    --bar: #2fc6f6; --track: #26313c;
-    --ok-bg: #233314; --ok-ink: #b6e06a; --err-bg: #3c1d1d; --err-ink: #ff9a94;
-    --warn: #f0a040; --late: #ff7b72; --done: #6d7884;
-    --shadow: none;
-    color-scheme: dark;
-  }
+:root[data-theme="dark"] {
+  --bg: #131a21; --surface: #1c252e; --surface-2: #232e39; --line: #2c3946; --line-2: #3a4855;
+  --ink: #e6ebef; --ink-2: #b8c2cc; --muted: #8c98a4;
+  --link: #6fb4f5;
+  --accent: #2fc6f6; --accent-ink: #0b1a22; --accent-soft: #163645; --accent-strong: #5fd5fa;
+  --success: #a5d61c; --success-hover: #b9e639; --success-ink: #1b2410;
+  --side: #0f161d; --side-2: #1b2631; --side-ink: #aeb8c2; --side-sec: #66727e;
+  --top: #1a232c;
+  --bar: #2fc6f6; --track: #26313c;
+  --ok-bg: #233314; --ok-ink: #b6e06a; --err-bg: #3c1d1d; --err-ink: #ff9a94;
+  --warn: #f0a040; --late: #ff7b72; --done: #6d7884;
+  --shadow: none;
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -193,7 +193,7 @@ table.list { width: 100%; border-collapse: collapse; }
 .list th a { color: inherit; }
 .list tbody tr { cursor: pointer; }
 .list tbody tr:hover { background: #f4fbfe; }
-@media (prefers-color-scheme: dark) { .list tbody tr:hover { background: var(--surface-2); } }
+[data-theme="dark"] .list tbody tr:hover { background: var(--surface-2); }
 .list tbody tr:last-child td { border-bottom: 0; }
 .list td.main a { font-weight: 600; }
 .list .num, .num { text-align: right; font-variant-numeric: tabular-nums; }
@@ -289,7 +289,7 @@ li.late .t-meta { color: var(--late); }
 .kb-sum small { font-size: .75rem; color: var(--muted); }
 .kb-add { display: grid; place-items: center; height: 34px; border-radius: 8px; border: 1px dashed var(--line-2); color: var(--muted); background: rgba(255, 255, 255, .45); }
 .kb-add:hover { border-color: var(--c); color: var(--c); background: var(--surface); text-decoration: none; }
-@media (prefers-color-scheme: dark) { .kb-add { background: transparent; } }
+[data-theme="dark"] .kb-add { background: transparent; }
 .kb-cards { display: flex; flex-direction: column; gap: 8px; min-height: 40px; }
 .kb-card {
   position: relative; background: var(--surface); border-radius: 8px; padding: 10px 12px 10px 14px;

@@ -3,10 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="only light">
 <title>{% block title %}Demo CRM{% endblock %} · Demo CRM</title>
 <link rel="stylesheet" href="{{ static_url('style.css') }}">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%232fc6f6'/><text x='16' y='22' font-size='16' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'>C</text></svg>">
-<script>try { if (localStorage.getItem('crm-side-mini') === '1') document.documentElement.classList.add('side-mini'); } catch (e) {}</script>
+<script>
+// tema luminoasa e implicita; cea intunecata doar daca utilizatorul a ales-o din meniu
+try {
+  if (localStorage.getItem('crm-side-mini') === '1') document.documentElement.classList.add('side-mini');
+  if (localStorage.getItem('crm-theme') === 'dark') document.documentElement.dataset.theme = 'dark';
+} catch (e) {}
+</script>
 </head>
 {% from '_icons.html' import icon %}
 <body class="{{ 'app' if session.uid else 'guest' }}">
@@ -46,6 +53,7 @@
         <summary><span class="ava">{{ initials(session.name) }}</span><span class="uname">{{ session.name }}</span><span class="caret">▾</span></summary>
         <div class="user-menu">
           <div class="um-head"><span class="ava big">{{ initials(session.name) }}</span><b>{{ session.name }}</b></div>
+          <button type="button" class="um-item" id="theme-toggle">{{ icon('moon') }} <span data-theme-label>Temă întunecată</span></button>
           <form method="post" action="{{ url_for('logout') }}">
             <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
             <button type="submit" class="um-item">{{ icon('logout') }} Ieșire</button>
@@ -67,6 +75,16 @@
   b.addEventListener('click', function () {
     var mini = root.classList.toggle('side-mini');
     try { localStorage.setItem('crm-side-mini', mini ? '1' : '0'); } catch (e) {}
+  });
+  // tema intunecata, ca optiune personala (pastrata in browser)
+  var tb = document.getElementById('theme-toggle'), tl = tb.querySelector('[data-theme-label]');
+  function themeLabel() { tl.textContent = root.dataset.theme === 'dark' ? 'Temă luminoasă' : 'Temă întunecată'; }
+  themeLabel();
+  tb.addEventListener('click', function () {
+    var dark = root.dataset.theme !== 'dark';
+    if (dark) root.dataset.theme = 'dark'; else delete root.dataset.theme;
+    try { localStorage.setItem('crm-theme', dark ? 'dark' : 'light'); } catch (e) {}
+    themeLabel();
   });
   // meniul utilizatorului se inchide la click in afara lui
   document.addEventListener('click', function (e) {
