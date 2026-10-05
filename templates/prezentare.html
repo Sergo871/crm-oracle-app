@@ -211,7 +211,6 @@ code { background: #e9eef2; padding: .05em .35em; border-radius: 5px; }
     </div>
     <div class="hero-shot" aria-hidden="true">
       <img src="{{ img('panou') }}" alt="">
-      <img class="ph" src="{{ img('telefon-kanban') }}" alt="">
     </div>
   </div>
 </section>
@@ -385,12 +384,24 @@ code { background: #e9eef2; padding: .05em .35em; border-radius: 5px; }
         <li>Valorile din bază sunt în rusă (ca în Demo CRM) și se afișează <b>traduse în română</b>.</li>
       </ul>
     </div>
-    <div class="duo">
-      <figure class="shot"><div class="chrome"><i></i><i></i><i></i><span>…/crm/clients/</span></div>
+    <figure class="shot fit"><div class="chrome"><i></i><i></i><i></i><span>…/crm/clients/</span></div>
         <div class="view"><img src="{{ img('lista-clienti') }}" alt="Lista clienților" loading="lazy"></div></figure>
-      <figure class="shot inset"><div class="chrome"><i></i><i></i><i></i><span>…/crm/deals/?sort=amount</span></div>
-        <div class="view"><img src="{{ img('lista-oferte') }}" alt="Lista ofertelor sortată după sumă" loading="lazy"></div></figure>
+  </div>
+</section>
+
+<section class="slide" data-title="Liste: sortare">
+  <div class="split">
+    <div class="txt">
+      <p class="kicker">Liste · sortare</p>
+      <h2>Ofertele <b>sortate după sumă</b></h2>
+      <ul>
+        <li>Clic pe antetul coloanei <b>Sumă</b> — ofertele mari apar primele.</li>
+        <li>Încă un clic inversează ordinea.</li>
+        <li>Etapa fiecărei oferte apare ca <b>etichetă colorată</b>.</li>
+      </ul>
     </div>
+    <figure class="shot fit"><div class="chrome"><i></i><i></i><i></i><span>…/crm/deals/?sort=amount</span></div>
+      <div class="view"><img src="{{ img('lista-oferte') }}" alt="Lista ofertelor sortată după sumă" loading="lazy"></div></figure>
   </div>
 </section>
 
@@ -426,12 +437,24 @@ code { background: #e9eef2; padding: .05em .35em; border-radius: 5px; }
         <li>Căutarea și filtrele funcționează și pe tablă; butonul + adaugă direct în etapa coloanei.</li>
       </ul>
     </div>
-    <div class="duo">
-      <figure class="shot"><div class="chrome"><i></i><i></i><i></i><span>…/crm/deals/kanban</span></div>
+    <figure class="shot fit"><div class="chrome"><i></i><i></i><i></i><span>…/crm/deals/kanban</span></div>
         <div class="view"><img src="{{ img('kanban-oferte') }}" alt="Kanban-ul ofertelor" loading="lazy"></div></figure>
-      <figure class="shot inset"><div class="chrome"><i></i><i></i><i></i><span>…/crm/tasks/kanban</span></div>
-        <div class="view"><img src="{{ img('kanban-sarcini') }}" alt="Kanban-ul sarcinilor" loading="lazy"></div></figure>
+  </div>
+</section>
+
+<section class="slide" data-title="Kanban: sarcini">
+  <div class="split">
+    <div class="txt">
+      <p class="kicker">Kanban · sarcini</p>
+      <h2>Sarcinile <b>pe etape</b></h2>
+      <ul>
+        <li>Coloane: <b>Nouă, În lucru, În așteptare, Gata</b>.</li>
+        <li>Pe card: clientul, responsabilul, prioritatea și termenul.</li>
+        <li>Termenul sarcinilor <b>întârziate</b> apare cu roșu.</li>
+      </ul>
     </div>
+    <figure class="shot fit"><div class="chrome"><i></i><i></i><i></i><span>…/crm/tasks/kanban</span></div>
+      <div class="view"><img src="{{ img('kanban-sarcini') }}" alt="Kanban-ul sarcinilor" loading="lazy"></div></figure>
   </div>
 </section>
 
@@ -448,12 +471,24 @@ code { background: #e9eef2; padding: .05em .35em; border-radius: 5px; }
         <li>La sarcini, etapa <b>„Gata”</b> o marchează ca făcută.</li>
       </ul>
     </div>
-    <div class="duo">
-      <figure class="shot"><div class="chrome"><i></i><i></i><i></i><span>cardul tras peste „Negocieri”</span></div>
+    <figure class="shot fit"><div class="chrome"><i></i><i></i><i></i><span>cardul tras peste „Negocieri”</span></div>
         <div class="view"><img src="{{ img('kanban-tragere') }}" alt="Un card de ofertă tras în coloana Negocieri" loading="lazy"></div></figure>
-      <figure class="shot inset"><div class="chrome"><i></i><i></i><i></i><span>alternativa fără tragere: meniul ⋯ „Mută în”</span></div>
-        <div class="view"><img src="{{ img('kanban-meniu') }}" alt="Meniul Mută în de pe un card" loading="lazy"></div></figure>
+  </div>
+</section>
+
+<section class="slide" data-title="Kanban: meniul Mută în">
+  <div class="split">
+    <div class="txt">
+      <p class="kicker">Kanban · fără tragere</p>
+      <h2>Meniul <b>⋯ „Mută în”</b></h2>
+      <ul>
+        <li>Fiecare card are meniul <b>⋯</b> cu lista etapelor.</li>
+        <li>Util pe telefon sau când tragerea nu e comodă.</li>
+        <li>Salvarea e aceeași ca la drag-and-drop.</li>
+      </ul>
     </div>
+    <figure class="shot fit"><div class="chrome"><i></i><i></i><i></i><span>alternativa fără tragere: meniul ⋯ „Mută în”</span></div>
+      <div class="view"><img src="{{ img('kanban-meniu') }}" alt="Meniul Mută în de pe un card" loading="lazy"></div></figure>
   </div>
 </section>
 
@@ -524,12 +559,24 @@ code { background: #e9eef2; padding: .05em .35em; border-radius: 5px; }
         <li>Fondatorii și datoriile se păstrează ca text JSON, alături de datele de bază.</li>
       </ul>
     </div>
-    <div class="duo">
-      <figure class="shot"><div class="chrome"><i></i><i></i><i></i><span>…/crm/companies/</span></div>
+    <figure class="shot fit"><div class="chrome"><i></i><i></i><i></i><span>…/crm/companies/</span></div>
         <div class="view"><img src="{{ img('companii') }}" alt="Lista companiilor din registru" loading="lazy"></div></figure>
-      <figure class="shot inset"><div class="chrome"><i></i><i></i><i></i><span>…/crm/companies/1003600060378/edit</span></div>
-        <div class="view"><img src="{{ img('companie') }}" alt="Fișa unei companii cu butonul Adaugă ca client" loading="lazy"></div></figure>
+  </div>
+</section>
+
+<section class="slide" data-title="Fișa unei companii">
+  <div class="split">
+    <div class="txt">
+      <p class="kicker">Companii · fișa</p>
+      <h2>Din registru <b>în clienți</b></h2>
+      <ul>
+        <li>Fișa arată toate datele companiei din registru.</li>
+        <li>Butonul <b>„Adaugă ca client”</b> creează clientul dintr-un clic.</li>
+        <li>Dacă IDNO-ul există deja, se deschide clientul existent.</li>
+      </ul>
     </div>
+    <figure class="shot fit"><div class="chrome"><i></i><i></i><i></i><span>…/crm/companies/1003600060378/edit</span></div>
+      <div class="view"><img src="{{ img('companie') }}" alt="Fișa unei companii cu butonul Adaugă ca client" loading="lazy"></div></figure>
   </div>
 </section>
 
@@ -546,8 +593,24 @@ code { background: #e9eef2; padding: .05em .35em; border-radius: 5px; }
         <li>Interfața e <b>luminoasă</b> pentru toți; tema întunecată se alege din meniul utilizatorului.</li>
       </ul>
     </div>
-    <div class="shots2" style="max-width:640px">
+    <div class="shots2" style="grid-template-columns:1fr;max-width:330px;justify-self:center">
       <figure class="shot"><div class="view"><img src="{{ img('telefon-kanban') }}" alt="Kanban-ul sarcinilor pe telefon" loading="lazy"></div></figure>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-title="Pe telefon: calendar">
+  <div class="split">
+    <div class="txt">
+      <p class="kicker">Pe telefon · calendar</p>
+      <h2>Calendarul devine <b>agendă</b></h2>
+      <ul>
+        <li>Pe ecran mic, zilele apar una sub alta.</li>
+        <li>Fiecare sarcină se deschide cu un clic.</li>
+        <li>Cele făcute sunt tăiate, cele deschise — evidențiate.</li>
+      </ul>
+    </div>
+    <div class="shots2" style="grid-template-columns:1fr;max-width:330px;justify-self:center">
       <figure class="shot"><div class="view"><img src="{{ img('telefon-calendar') }}" alt="Calendarul ca agendă pe telefon" loading="lazy"></div></figure>
     </div>
   </div>
