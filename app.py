@@ -154,7 +154,7 @@ def active_section():
 
 # ---------------------------------------------------------------- autentificare
 
-PUBLIC = {"login", "static"}
+PUBLIC = {"login", "static", "prezentare"}
 
 
 @app.before_request
@@ -860,6 +860,23 @@ def calendar():
                            prev=prev.strftime("%Y-%m"), nxt=nxt.strftime("%Y-%m"),
                            weekdays=WEEKDAYS, only_open=only_open, n=len(rows))
 
+# ---------------------------------------------------------------- prezentare (publică)
+
+PREZ_TABLES = ["clients", "contacts", "leads", "deals", "projects", "orders", "order_lines",
+               "items", "tasks", "companies", "users"]
+
+
+@app.route("/prezentare")
+def prezentare():
+    """Prezentarea aplicației (slide-uri), accesibilă fără logare."""
+    counts = {}
+    try:
+        row = db.one("SELECT " + ", ".join(f"(SELECT COUNT(*) FROM {t}) {t}" for t in PREZ_TABLES)
+                     + " FROM dual")
+        counts = {t: int(row[t]) for t in PREZ_TABLES}
+    except oracledb.DatabaseError:
+        pass  # prezentarea se afișează și fără bază, doar fără numere
+    return render_template("prezentare.html", n=counts)
 
 
 @app.errorhandler(404)

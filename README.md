@@ -5,6 +5,7 @@ Aplicație web Flask + python-oracledb peste tabelele Demo CRM
 **CRM_DEMO** a unei baze Oracle Autonomous Database. Este o alternativă la APEX.
 
 Online: <https://flask-hello-oracle.duckdns.org/crm/>
+· Prezentare (fără logare): <https://flask-hello-oracle.duckdns.org/crm/prezentare>
 
 ## Funcționalități
 
@@ -28,6 +29,9 @@ Online: <https://flask-hello-oracle.duckdns.org/crm/>
 - **Companii** (registrul date.gov.md): butonul „Adaugă ca client”.
 - Interfață în limba română, adaptată pentru telefon, cu temă luminoasă/întunecată.
   Valorile categoriale din bază (în rusă, ca în Demo CRM) se afișează traduse.
+- **Prezentare** publică la `/prezentare`: slide-uri navigabile din săgeți (tastatură, butoane,
+  glisare pe telefon) cu arhitectura, tabelele și capturi reale din interfață. Capturile se
+  refac cu `python tools/capturi_prezentare.py` (Playwright, contul DEMO, fără a modifica date).
 - **Autentificare**: utilizatorii sunt în tabelul `users`, iar parola se stochează doar ca hash
   (Werkzeug scrypt). Toate formularele au protecție CSRF.
 
@@ -39,7 +43,8 @@ schema.py     descrierea tabelelor: câmpuri, etichete, legături, traduceri
 db.py         pool de conexiuni python-oracledb (thin mode, wallet)
 manage.py     administrare utilizatori (set-password, list-users)
 templates/    șabloane Jinja
-static/       CSS și kanban.js (drag-and-drop)
+static/       CSS, kanban.js (drag-and-drop), prezentare/ (capturi)
+tools/        capturi_prezentare.py (Playwright)
 deploy/       unitate systemd + fragment nginx pentru /crm/
 ```
 

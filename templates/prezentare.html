@@ -1,0 +1,673 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="only light">
+<title>Prezentare · Demo CRM</title>
+<meta name="description" content="Demo CRM: aplicație web Flask peste Oracle Autonomous Database (schema CRM_DEMO) — prezentare.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%232fc6f6'/><text x='16' y='22' font-size='16' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'>C</text></svg>">
+{% macro img(name) %}{{ static_url('prezentare/' ~ name ~ '.png') }}{% endmacro %}
+{% macro num(key) %}{{ n[key] if n.get(key) is not none else '—' }}{% endmacro %}
+<style>
+:root {
+  --bg: #eef2f4; --surface: #fff; --line: #e3e8ec; --ink: #333; --ink-2: #535c69; --muted: #828b95;
+  --navy: #1d2b3a; --navy-2: #26384a; --accent: #2fc6f6; --accent-strong: #11a9d9; --accent-soft: #e5f7fe;
+  --lime: #bbed21; --orange: #ffa900; --green: #7bd500; --red: #ff5752; --blue: #39a8ef; --violet: #9f7aea;
+  --bar-h: 60px;
+  color-scheme: only light;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; overflow: hidden; background: var(--bg); color: var(--ink);
+  font: 16px/1.5 "Open Sans", "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
+}
+a { color: #2067b0; }
+code, .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: .9em; }
+code { background: #e9eef2; padding: .05em .35em; border-radius: 5px; }
+
+/* ---- slide-uri */
+.deck { position: fixed; inset: 0 0 var(--bar-h) 0; }
+.slide {
+  position: absolute; inset: 0; padding: 40px 56px 28px; overflow: hidden;
+  display: flex; flex-direction: column; gap: 22px;
+  opacity: 0; visibility: hidden; transform: translateX(40px);
+  transition: opacity .35s ease, transform .35s ease, visibility 0s linear .35s;
+}
+.slide.on { opacity: 1; visibility: visible; transform: none; transition: opacity .35s ease, transform .35s ease; }
+.slide.before { transform: translateX(-40px); }
+.kicker { font-size: .78rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--accent-strong); }
+.slide h2 { margin: 2px 0 0; font-size: clamp(1.6rem, 2.6vw, 2.4rem); font-weight: 400; letter-spacing: -.01em; color: var(--navy); line-height: 1.2; }
+.slide h2 b { font-weight: 700; }
+.lead { margin: 0; font-size: 1.12rem; color: var(--ink-2); max-width: 70ch; }
+.head { flex-shrink: 0; }
+
+/* text + captura */
+.split { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(300px, 29%) 1fr; gap: 40px; align-items: center; }
+.split.rev { grid-template-columns: 1fr minmax(280px, 30%); }
+.split.rev .txt { order: 2; }
+.txt { display: flex; flex-direction: column; gap: 14px; }
+.txt ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.txt li { position: relative; padding-left: 26px; color: var(--ink-2); }
+.txt li::before { content: ""; position: absolute; left: 4px; top: .55em; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); }
+.txt li b { color: var(--ink); }
+.note { font-size: .9rem; color: var(--muted); }
+
+.shot {
+  margin: 0; min-height: 0; max-height: 100%; display: flex; flex-direction: column;
+  background: var(--surface); border-radius: 12px; overflow: hidden;
+  box-shadow: 0 1px 2px rgba(29, 43, 58, .08), 0 12px 32px rgba(29, 43, 58, .14);
+}
+.shot .chrome { flex-shrink: 0; display: flex; align-items: center; gap: 7px; padding: 9px 14px; background: #f5f7f8; border-bottom: 1px solid var(--line); }
+.shot .chrome i { width: 11px; height: 11px; border-radius: 50%; background: #dfe4e8; }
+.shot .chrome i:nth-child(1) { background: #ff6b5f; } .shot .chrome i:nth-child(2) { background: #ffbd2e; } .shot .chrome i:nth-child(3) { background: #29c840; }
+.shot .chrome span { margin-left: 10px; flex: 1; min-width: 0; padding: 3px 12px; border-radius: 999px; background: #fff; border: 1px solid var(--line); color: var(--muted); font-size: .78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.shot .view { min-height: 0; overflow: auto; cursor: zoom-in; }
+.shot img { display: block; width: 100%; height: auto; }
+.shot.fit img { max-height: calc(100vh - var(--bar-h) - 210px); width: auto; max-width: 100%; margin: 0 auto; }
+.shots2 { min-height: 0; max-height: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: start; }
+.shots2 .shot { max-height: calc(100vh - var(--bar-h) - 200px); }
+.duo { position: relative; padding-bottom: 9%; align-self: center; }
+.duo > .shot { margin: 0; }
+.duo > .shot:first-child { width: 86%; }
+.duo > .shot.inset { position: absolute; right: 0; bottom: 0; width: 46%; box-shadow: 0 2px 4px rgba(29, 43, 58, .1), 0 24px 56px rgba(29, 43, 58, .3); }
+
+/* ---- titlu */
+.title-slide { background: radial-gradient(1200px 600px at 85% 110%, rgba(47, 198, 246, .35), transparent 60%), linear-gradient(135deg, #172331 0%, var(--navy) 45%, #1f4f7a 100%); color: #fff; justify-content: center; }
+.title-slide .grid { display: grid; grid-template-columns: 1fr 1.15fr; gap: 56px; align-items: center; }
+.logo { font-size: clamp(2.8rem, 6vw, 5rem); font-weight: 700; letter-spacing: -.03em; line-height: 1; margin: 0; }
+.logo span { color: var(--accent); }
+.title-slide .sub { font-size: clamp(1.05rem, 1.6vw, 1.35rem); color: #c4ccd5; margin: 18px 0 30px; max-width: 34ch; }
+.tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 32px; }
+.tags span { padding: 5px 12px; border-radius: 999px; background: rgba(255, 255, 255, .1); color: #e6ebef; font-size: .85rem; border: 1px solid rgba(255, 255, 255, .14); }
+.btns { display: flex; flex-wrap: wrap; gap: 12px; }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; border-radius: 999px; font-weight: 700; font-size: .9rem; letter-spacing: .04em; text-transform: uppercase; text-decoration: none; border: 0; cursor: pointer; }
+.btn.lime { background: var(--lime); color: #535c69; }
+.btn.lime:hover { background: #d2f95f; }
+.btn.line { background: transparent; color: #fff; border: 1px solid rgba(255, 255, 255, .4); }
+.btn.line:hover { background: rgba(255, 255, 255, .1); }
+.btn.blue { background: var(--accent); color: #fff; }
+.btn.blue:hover { background: var(--accent-strong); }
+.hero-shot { position: relative; margin-right: 4%; transform: perspective(1600px) rotateY(-7deg) rotateX(2deg); transform-origin: left center; }
+.hero-shot img { width: 100%; border-radius: 12px; display: block; box-shadow: 0 30px 70px rgba(0, 0, 0, .45); }
+.hero-shot img.ph { position: absolute; width: 25%; right: -3%; bottom: -12%; border-radius: 18px; border: 5px solid #0d141b; }
+
+/* ---- carduri */
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; }
+.card { background: var(--surface); border-radius: 12px; padding: 18px 20px; box-shadow: 0 1px 2px rgba(83, 92, 105, .08), 0 2px 6px rgba(83, 92, 105, .05); border-top: 3px solid var(--c, var(--accent)); }
+.card h3 { margin: 0 0 6px; font-size: 1.02rem; color: var(--navy); }
+.card p { margin: 0; font-size: .92rem; color: var(--ink-2); }
+.card .big { font-size: 1.9rem; font-weight: 300; color: var(--navy); line-height: 1.1; }
+.card .big small { font-size: .9rem; color: var(--muted); font-weight: 400; margin-left: 4px; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; }
+.stats .card { padding: 14px 16px; }
+.stats .card p { font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
+.scroll { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; justify-content: center; gap: 22px; }
+
+/* ---- arhitectura */
+.arch { flex: 1; min-height: 0; display: grid; grid-template-columns: 1.25fr 1fr; gap: 36px; align-items: center; }
+.flow { display: flex; flex-direction: column; align-items: stretch; gap: 0; }
+.node { position: relative; display: grid; grid-template-columns: 46px 1fr; gap: 14px; align-items: center; background: var(--surface); border-radius: 12px; padding: 12px 18px; box-shadow: 0 1px 2px rgba(83, 92, 105, .08), 0 2px 6px rgba(83, 92, 105, .05); border-left: 4px solid var(--c); }
+.node .ic { width: 46px; height: 46px; border-radius: 10px; display: grid; place-items: center; background: color-mix(in srgb, var(--c) 14%, white); color: var(--c); font-weight: 800; font-size: .8rem; }
+.node .ic svg { width: 26px; height: 26px; }
+.node b { color: var(--navy); }
+.node small { display: block; color: var(--muted); font-size: .84rem; line-height: 1.4; }
+.link { align-self: center; display: flex; flex-direction: column; align-items: center; color: var(--muted); font-size: .76rem; padding: 3px 0; }
+.link::before { content: ""; width: 2px; height: 10px; background: var(--line); }
+.link::after { content: ""; border: 6px solid transparent; border-top-color: #b7c1ca; border-bottom: 0; }
+.group { border: 2px dashed #c6d3dc; border-radius: 16px; padding: 22px 14px 12px; position: relative; display: flex; flex-direction: column; }
+.group > .gl { position: absolute; top: -12px; left: 16px; background: var(--bg); padding: 0 8px; font-size: .76rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.stack { display: flex; flex-direction: column; gap: 12px; }
+.stack .card { padding: 14px 18px; }
+.stack .card h3 { font-size: .95rem; }
+.stack .card p { font-size: .87rem; }
+
+/* ---- diagrama tabelelor */
+.er { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr minmax(240px, 26%); gap: 28px; align-items: center; }
+.er svg { width: 100%; height: 100%; max-height: calc(100vh - var(--bar-h) - 190px); }
+.er .bx rect { fill: #fff; stroke: #d5dce1; stroke-width: 1.5; }
+.er .bx .hd { fill: var(--c); stroke: none; }
+.er .bx .t { font: 700 15px ui-monospace, Consolas, monospace; fill: #fff; }
+.er .bx .n { font: 600 12px sans-serif; fill: rgba(255, 255, 255, .85); }
+.er .bx .f { font: 12px ui-monospace, Consolas, monospace; fill: #535c69; }
+.er .ln { stroke: #7f8c99; stroke-width: 1.8; fill: none; marker-end: url(#arr); }
+.er .ln.dash { stroke-dasharray: 6 5; stroke: #b0bac4; marker-end: none; }
+.er .lbl { font: 600 11px sans-serif; fill: #828b95; }
+
+/* ---- final */
+.end-slide { background: linear-gradient(135deg, #172331 0%, var(--navy) 50%, #1f4f7a 100%); color: #fff; align-items: center; justify-content: center; text-align: center; }
+.end-slide h2 { color: #fff; font-size: clamp(2rem, 4vw, 3.2rem); }
+.end-slide .lead { color: #c4ccd5; margin: 0 auto; }
+.end-slide .url { font-size: clamp(1rem, 2vw, 1.4rem); color: var(--accent); font-weight: 600; word-break: break-all; text-decoration: none; }
+.end-slide .acc { display: inline-flex; gap: 22px; padding: 14px 26px; border-radius: 14px; background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 255, 255, .14); font-size: 1.05rem; }
+.end-slide .acc b { color: var(--lime); }
+.end-slide .small { color: #8fa0b0; font-size: .9rem; }
+.end-slide .small a { color: #c4ccd5; }
+
+/* ---- bara de navigare */
+.bar {
+  position: fixed; left: 0; right: 0; bottom: 0; height: var(--bar-h); z-index: 10;
+  display: flex; align-items: center; gap: 14px; padding: 0 20px;
+  background: var(--navy); color: #c4ccd5;
+}
+.bar .brand { font-weight: 700; color: #fff; text-decoration: none; white-space: nowrap; }
+.bar .brand span { color: var(--accent); }
+.bar .ttl { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: .9rem; }
+.bar button { width: 40px; height: 40px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, .2); background: transparent; color: #fff; font-size: 1.15rem; cursor: pointer; display: grid; place-items: center; }
+.bar button:hover:not(:disabled) { background: var(--navy-2); border-color: var(--accent); }
+.bar button:disabled { opacity: .3; cursor: default; }
+.bar .cnt { font-variant-numeric: tabular-nums; font-size: .9rem; min-width: 56px; text-align: center; }
+.bar .app { padding: 8px 18px; font-size: .78rem; }
+.progress { position: fixed; left: 0; bottom: var(--bar-h); height: 3px; background: var(--accent); z-index: 11; transition: width .35s ease; }
+.dots { display: flex; gap: 5px; }
+.dots button { width: 9px; height: 9px; padding: 0; border: 0; border-radius: 50%; background: rgba(255, 255, 255, .25); }
+.dots button.on { background: var(--accent); }
+.dots button:hover:not(.on) { background: rgba(255, 255, 255, .5); border: 0; }
+
+/* ---- marire captura */
+.zoom { position: fixed; inset: 0; z-index: 20; background: rgba(13, 20, 27, .92); display: none; overflow: auto; cursor: zoom-out; padding: 24px; }
+.zoom.open { display: block; }
+.zoom img { display: block; margin: 0 auto; max-width: 100%; border-radius: 8px; box-shadow: 0 20px 60px rgba(0, 0, 0, .5); }
+.zoom .x { position: fixed; top: 14px; right: 18px; color: #fff; font-size: .85rem; opacity: .7; }
+
+/* ---- ecrane mici: fiecare slide se deruleaza vertical */
+@media (max-width: 900px) {
+  :root { --bar-h: 56px; }
+  .slide { padding: 24px 16px 24px; overflow-y: auto; gap: 16px; }
+  .duo { padding-bottom: 0; display: flex; flex-direction: column; gap: 16px; }
+  .duo > .shot:first-child, .duo > .shot.inset { position: static; width: 100%; }
+  .split, .split.rev, .arch, .er, .title-slide .grid, .shots2 { display: flex; flex-direction: column; align-items: stretch; gap: 20px; }
+  .split.rev .txt { order: 0; }
+  .shot, .shots2 .shot { max-height: none; flex-shrink: 0; }
+  .shot .view { max-height: 70vh; }
+  .shot.fit img { max-height: none; width: 100%; }
+  .er svg { max-height: none; height: auto; flex-shrink: 0; }
+  .hero-shot { transform: none; margin-bottom: 30px; }
+  .title-slide { justify-content: flex-start; }
+  .bar .ttl, .dots, .bar .brand { display: none; }
+  .bar { justify-content: space-between; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .slide, .slide.on, .progress { transition: none; transform: none; }
+}
+</style>
+</head>
+<body>
+<main class="deck" id="deck">
+
+<!-- 1. Titlu -->
+<section class="slide title-slide" data-title="Demo CRM pe Oracle Autonomous Database">
+  <div class="grid">
+    <div>
+      <p class="kicker" style="color:var(--accent)">Prezentarea aplicației</p>
+      <h1 class="logo">Demo <span>CRM</span></h1>
+      <p class="sub">CRM web în limba română, construit cu Flask peste o bază Oracle Autonomous Database, cu interfață în stilul Bitrix24.</p>
+      <div class="tags"><span>Oracle ADB · CRM_DEMO</span><span>Python · Flask</span><span>OCI</span><span>nginx · HTTPS</span><span>Kanban drag-and-drop</span></div>
+      <div class="btns">
+        <button class="btn lime" type="button" data-go="1">Începe prezentarea →</button>
+        <a class="btn line" href="{{ url_for('dashboard') }}">Deschide aplicația</a>
+      </div>
+    </div>
+    <div class="hero-shot" aria-hidden="true">
+      <img src="{{ img('panou') }}" alt="">
+      <img class="ph" src="{{ img('telefon-kanban') }}" alt="">
+    </div>
+  </div>
+</section>
+
+<!-- 2. Ce face -->
+<section class="slide" data-title="Ce face aplicația">
+  <div class="head">
+    <p class="kicker">Ce face aplicația</p>
+    <h2>Tot ciclul de vânzare, <b>de la lead la comanda achitată</b></h2>
+  </div>
+  <div class="scroll">
+    <p class="lead">Demo CRM ține evidența clienților și a activității comerciale a unei firme mici: cine sunt clienții, ce oferte sunt în lucru, ce comenzi s-au făcut și ce sarcini are fiecare angajat. Datele provin din Demo CRM (proiectul Contragenti) și din registrul de stat al companiilor (date.gov.md).</p>
+    <div class="cards">
+      <div class="card" style="--c:var(--blue)"><h3>Clienți și contacte</h3><p>Firmele cu IDNO, telefon, adresă, administrator și persoanele de contact.</p></div>
+      <div class="card" style="--c:var(--accent)"><h3>Lead-uri și oferte</h3><p>Cereri noi pe surse și oferte pe etape: nouă → trimisă → negocieri → câștigată / pierdută.</p></div>
+      <div class="card" style="--c:var(--orange)"><h3>Proiecte și comenzi</h3><p>Proiecte cu buget și avans; comenzi cu poziții din catalog și total calculat automat.</p></div>
+      <div class="card" style="--c:var(--green)"><h3>Sarcini și calendar</h3><p>Apeluri, întâlniri și sarcini cu termen, responsabil și prioritate; cele întârziate ies în evidență.</p></div>
+      <div class="card" style="--c:var(--violet)"><h3>Catalog și registru</h3><p>Produse și servicii cu preț și TVA; registrul companiilor din Moldova, din care se creează clienți.</p></div>
+    </div>
+    <div class="stats">
+      <div class="card"><div class="big">{{ num('clients') }}</div><p>clienți</p></div>
+      <div class="card"><div class="big">{{ num('deals') }}</div><p>oferte</p></div>
+      <div class="card"><div class="big">{{ num('orders') }}<small>/ {{ num('order_lines') }} poz.</small></div><p>comenzi</p></div>
+      <div class="card"><div class="big">{{ num('tasks') }}</div><p>sarcini</p></div>
+      <div class="card"><div class="big">{{ num('items') }}</div><p>produse</p></div>
+      <div class="card"><div class="big">{{ num('companies') }}</div><p>companii în registru</p></div>
+    </div>
+    <p class="note">Numerele sunt citite acum din baza Oracle.</p>
+  </div>
+</section>
+
+<!-- 3. Arhitectura -->
+<section class="slide" data-title="Arhitectura">
+  <div class="head">
+    <p class="kicker">Arhitectura</p>
+    <h2>De la browser la <b>Oracle Autonomous Database</b></h2>
+  </div>
+  <div class="arch">
+    <div class="flow">
+      <div class="node" style="--c:var(--blue)"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 8h18M8 21h8"/></svg></div>
+        <div><b>Browser (calculator sau telefon)</b><small>HTML randat pe server, CSS propriu, puțin JavaScript (Kanban)</small></div></div>
+      <div class="link">HTTPS · flask-hello-oracle.duckdns.org/crm/</div>
+      <div class="group"><span class="gl">VM în Oracle Cloud (OCI)</span>
+        <div class="node" style="--c:#009639"><div class="ic">nginx</div>
+          <div><b>nginx</b><small>TLS, <code>location /crm/</code> → <code>127.0.0.1:5002</code>, antet <code>X-Forwarded-Prefix: /crm</code></small></div></div>
+        <div class="link">proxy HTTP local</div>
+        <div class="node" style="--c:var(--accent-strong)"><div class="ic">py</div>
+          <div><b>gunicorn + Flask</b><small>serviciul systemd <code>crm-oracle-app</code>, 2 procese; Jinja2, ProxyFix, sesiuni, CSRF</small></div></div>
+      </div>
+      <div class="link">python-oracledb (thin) · wallet mTLS · pool de conexiuni</div>
+      <div class="node" style="--c:#c74634"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg></div>
+        <div><b>Oracle Autonomous Database</b><small>schema <code>CRM_DEMO</code> — 11 tabele; aplicația se conectează ca CRM_DEMO, nu ca ADMIN</small></div></div>
+    </div>
+    <div class="stack">
+      <div class="card" style="--c:var(--accent)"><h3>Cod Python compact</h3><p><code>app.py</code> — rutele; <code>schema.py</code> — descrierea tabelelor (câmpuri, etichete, legături, traduceri); <code>db.py</code> — pool-ul Oracle.</p></div>
+      <div class="card" style="--c:var(--orange)"><h3>Liste și formulare generice</h3><p>O singură rută desenează lista, filtrele și formularul oricărui tabel pe baza descrierii din <code>schema.py</code>; SQL-ul folosește doar variabile legate (bind).</p></div>
+      <div class="card" style="--c:var(--green)"><h3>Securitate</h3><p>Parole doar ca hash (scrypt), token CSRF în toate formularele, cookie HttpOnly + Secure, fișierul <code>.env</code> și wallet-ul în afara git.</p></div>
+      <div class="card" style="--c:var(--violet)"><h3>Publicare</h3><p>Cod pe GitHub; pe VM: <code>git pull</code> + <code>systemctl restart crm-oracle-app</code>.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 4. Tabelele -->
+<section class="slide" data-title="Tabelele și legăturile">
+  <div class="head">
+    <p class="kicker">Modelul de date</p>
+    <h2>Schema <b>CRM_DEMO</b>: tabelele și legăturile</h2>
+  </div>
+  <div class="er">
+    <svg viewBox="0 0 1000 510" role="img" aria-label="Diagrama tabelelor schemei CRM_DEMO și a cheilor străine">
+      <defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7f8c99"/></marker></defs>
+      <!-- legaturi (copil -> parinte) -->
+      <path class="ln" d="M210,82 L398,222"/>
+      <path class="ln" d="M210,250 L398,250"/>
+      <path class="ln" d="M500,102 L500,202"/>
+      <path class="ln" d="M790,66 L592,66"/>
+      <path class="ln" d="M796,102 L602,220"/>
+      <path class="ln" d="M880,102 L880,212"/>
+      <path class="ln" d="M970,44 C1000,44 1000,92 972,92"/>
+      <path class="ln" d="M790,250 L602,250"/>
+      <path class="ln" d="M530,420 L515,298"/>
+      <path class="ln" d="M620,432 L828,288"/>
+      <path class="ln" d="M410,456 L448,456"/>
+      <path class="ln" d="M240,456 L202,456"/>
+      <path class="ln dash" d="M720,420 L598,290"/>
+      <text class="lbl" x="664" y="372" transform="rotate(48 664 372)">IDNO</text>
+      <text class="lbl" x="930" y="148">depends_on</text>
+
+      {% macro box(x, y, w, name, key, fk, c, h=72) %}
+      <g class="bx" style="--c:{{ c }}" transform="translate({{ x }},{{ y }})">
+        <rect width="{{ w }}" height="{{ h }}" rx="9"/>
+        <path class="hd" d="M0,9 a9,9 0 0 1 9,-9 h{{ w - 18 }} a9,9 0 0 1 9,9 v21 h-{{ w }} z"/>
+        <text class="t" x="12" y="21">{{ name }}</text>
+        <text class="n" x="{{ w - 10 }}" y="20" text-anchor="end">{{ num(key) }}</text>
+        {% for line in fk %}<text class="f" x="12" y="{{ 49 + loop.index0 * 16 }}">{{ line }}</text>{% endfor %}
+      </g>
+      {% endmacro %}
+      {{ box(30, 30, 180, 'contacts', 'contacts', ['client_id → clients'], '#39a8ef') }}
+      {{ box(410, 30, 180, 'deals', 'deals', ['client_id → clients'], '#2fc6f6') }}
+      {{ box(790, 30, 180, 'tasks', 'tasks', ['client_id, deal_id,', 'project_id, depends_on'], '#7bc800') }}
+      {{ box(30, 214, 180, 'leads', 'leads', ['client_id → clients'], '#39a8ef') }}
+      {{ box(400, 204, 200, 'clients', 'clients', ['tabelul central', 'IDNO, tip, contacte'], '#1d2b3a', 94) }}
+      {{ box(790, 214, 180, 'projects', 'projects', ['client_id → clients'], '#ffa900') }}
+      {{ box(30, 420, 170, 'items', 'items', ['catalog: preț, TVA'], '#9f7aea') }}
+      {{ box(240, 420, 170, 'order_lines', 'order_lines', ['order_id, item_id', 'cant. × preț = sumă'], '#ffa900', 80) }}
+      {{ box(450, 420, 170, 'orders', 'orders', ['client_id,', 'project_id'], '#ffa900') }}
+      {{ box(660, 420, 170, 'companies', 'companies', ['registru date.gov.md'], '#9f7aea') }}
+      {{ box(860, 420, 120, 'users', 'users', ['login, hash'], '#828b95') }}
+    </svg>
+    <div class="txt">
+      <ul>
+        <li><b>clients</b> e centrul: contactele, lead-urile, ofertele, proiectele, comenzile și sarcinile trimit la client prin <code>client_id</code>.</li>
+        <li><b>orders → order_lines → items</b>: comanda are poziții (master-detail); ștergerea comenzii șterge și pozițiile (<code>ON DELETE CASCADE</code>).</li>
+        <li><b>tasks</b> se pot lega de client, ofertă, proiect și de altă sarcină (<code>depends_on</code>).</li>
+        <li><b>companies</b> e registrul de stat; se leagă de clienți logic, prin IDNO (linie punctată).</li>
+        <li><b>users</b>: conturile aplicației, parola doar ca hash.</li>
+      </ul>
+      <p class="note">Săgeata: cheie străină, de la tabelul copil spre părinte. Numerele din colț: rândurile din fiecare tabel.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 5. Logare -->
+<section class="slide" data-title="Logare cu contul DEMO">
+  <div class="split">
+    <div class="txt">
+      <p class="kicker">Logare</p>
+      <h2>Contul <b>DEMO</b>: un singur clic</h2>
+      <ul>
+        <li>Formularul vine <b>precompletat</b> cu <code>DEMO</code> / <code>DEMO123</code> — se apasă doar „Intră”.</li>
+        <li>Utilizatorul DEMO se creează automat în tabelul <code>users</code>; parola se păstrează doar ca <b>hash scrypt</b>.</li>
+        <li>Contul demonstrativ se poate dezactiva din <code>.env</code> (<code>DEMO_LOGIN=</code> gol).</li>
+        <li>Sesiunea ține 12 ore; formularele au <b>token CSRF</b>, iar o parolă greșită întârzie răspunsul o secundă.</li>
+      </ul>
+    </div>
+    <figure class="shot fit"><div class="chrome"><i></i><i></i><i></i><span>flask-hello-oracle.duckdns.org/crm/login</span></div>
+      <div class="view"><img src="{{ img('logare') }}" alt="Formularul de logare cu contul DEMO precompletat" loading="lazy"></div></figure>
+  </div>
+</section>
+
+<!-- 6. Panou -->
+<section class="slide" data-title="Panoul principal">
+  <div class="split">
+    <div class="txt">
+      <p class="kicker">Panou</p>
+      <h2>Situația firmei <b>dintr-o privire</b></h2>
+      <ul>
+        <li><b>Indicatori</b>: clienți, suma ofertelor active, comenzi în derulare, sarcini deschise și întârziate.</li>
+        <li><b>Oferte pe etape</b> și <b>comenzi pe status</b>, cu număr, sumă și bare colorate ca etapele din Kanban.</li>
+        <li><b>Sarcini deschise</b> după termen — se bifează direct din panou.</li>
+        <li><b>Top 5 clienți</b> după valoarea comenzilor (fără cele anulate).</li>
+        <li>În meniul lateral, insigna roșie arată câte sarcini sunt întârziate.</li>
+      </ul>
+    </div>
+    <figure class="shot fit"><div class="chrome"><i></i><i></i><i></i><span>…/crm/</span></div>
+      <div class="view"><img src="{{ img('panou') }}" alt="Panoul principal" loading="lazy"></div></figure>
+  </div>
+</section>
+
+<!-- 7. Liste -->
+<section class="slide" data-title="Liste">
+  <div class="split">
+    <div class="txt">
+      <p class="kicker">Liste</p>
+      <h2>Fiecare tabel are <b>o listă completă</b></h2>
+      <ul>
+        <li><b>Căutare</b> în câmpurile text, inclusiv în numele clientului legat și în etapele traduse.</li>
+        <li><b>Sortare</b> la clic pe coloană (alfabetică, fără diferență între majuscule și minuscule).</li>
+        <li><b>Filtre</b> pe tip, etapă, status, prioritate; <b>paginare</b> câte 20.</li>
+        <li>Etapele apar ca etichete colorate; legăturile se afișează cu <b>numele</b>, nu cu id-ul.</li>
+        <li>Valorile din bază sunt în rusă (ca în Demo CRM) și se afișează <b>traduse în română</b>.</li>
+      </ul>
+    </div>
+    <div class="duo">
+      <figure class="shot"><div class="chrome"><i></i><i></i><i></i><span>…/crm/clients/</span></div>
+        <div class="view"><img src="{{ img('lista-clienti') }}" alt="Lista clienților" loading="lazy"></div></figure>
+      <figure class="shot inset"><div class="chrome"><i></i><i></i><i></i><span>…/crm/deals/?sort=amount</span></div>
+        <div class="view"><img src="{{ img('lista-oferte') }}" alt="Lista ofertelor sortată după sumă" loading="lazy"></div></figure>
+    </div>
+  </div>
+</section>
+
+<!-- 8. Formulare -->
+<section class="slide" data-title="Formulare">
+  <div class="split">
+    <div class="txt">
+      <p class="kicker">Formulare</p>
+      <h2>Adăugare, editare, ștergere — <b>cu legături</b></h2>
+      <ul>
+        <li>Câmpurile se generează din <code>schema.py</code>: text, telefon, e-mail, dată, sumă, listă de valori, bifă.</li>
+        <li>Legăturile (client, proiect, ofertă) se aleg din <b>liste derulante cu nume</b>.</li>
+        <li><b>Validare</b>: câmpuri obligatorii, numere, date, e-mail; erorile Oracle se traduc în mesaje clare.</li>
+        <li>Secțiunea <b>Legături</b> numără înregistrările legate (contacte, oferte, sarcini…) și permite adăugarea uneia noi deja legată de client.</li>
+      </ul>
+      <p class="note">Captura e derulabilă — sau clic pentru mărire.</p>
+    </div>
+    <figure class="shot" style="margin:0;max-height:100%"><div class="chrome"><i></i><i></i><i></i><span>…/crm/clients/4/edit</span></div>
+      <div class="view"><img src="{{ img('formular-client') }}" alt="Formularul unui client cu secțiunea Legături" loading="lazy"></div></figure>
+  </div>
+</section>
+
+<!-- 9. Kanban -->
+<section class="slide" data-title="Kanban">
+  <div class="split">
+    <div class="txt">
+      <p class="kicker">Kanban</p>
+      <h2>Etapele procesului <b>pe coloane</b></h2>
+      <ul>
+        <li>Vedere Kanban pentru <b>oferte</b> și <b>sarcini</b> (după etapă), <b>comenzi</b> și <b>lead-uri</b> (după status).</li>
+        <li>Fiecare coloană arată numărul de carduri și <b>suma</b> (oferte, comenzi).</li>
+        <li>Comutator <b>Kanban / Listă</b>; meniul lateral ține minte ultima vedere aleasă.</li>
+        <li>Căutarea și filtrele funcționează și pe tablă; butonul + adaugă direct în etapa coloanei.</li>
+      </ul>
+    </div>
+    <div class="duo">
+      <figure class="shot"><div class="chrome"><i></i><i></i><i></i><span>…/crm/deals/kanban</span></div>
+        <div class="view"><img src="{{ img('kanban-oferte') }}" alt="Kanban-ul ofertelor" loading="lazy"></div></figure>
+      <figure class="shot inset"><div class="chrome"><i></i><i></i><i></i><span>…/crm/tasks/kanban</span></div>
+        <div class="view"><img src="{{ img('kanban-sarcini') }}" alt="Kanban-ul sarcinilor" loading="lazy"></div></figure>
+    </div>
+  </div>
+</section>
+
+<!-- 10. Drag-and-drop -->
+<section class="slide" data-title="Kanban: drag-and-drop">
+  <div class="split">
+    <div class="txt">
+      <p class="kicker">Kanban · drag-and-drop</p>
+      <h2>Tragi cardul — <b>etapa se salvează</b></h2>
+      <ul>
+        <li>Cardul se mută <b>imediat</b> în coloana nouă, iar sumele coloanelor se recalculează.</li>
+        <li>În spate pleacă un <code>POST</code> cu token CSRF; dacă salvarea eșuează, cardul <b>revine</b> și apare mesajul de eroare.</li>
+        <li>Pe telefon: <b>apăsare lungă</b> și tragere, sau meniul <b>⋯ „Mută în”</b> de pe card.</li>
+        <li>La sarcini, etapa <b>„Gata”</b> o marchează ca făcută.</li>
+      </ul>
+    </div>
+    <div class="duo">
+      <figure class="shot"><div class="chrome"><i></i><i></i><i></i><span>cardul tras peste „Negocieri”</span></div>
+        <div class="view"><img src="{{ img('kanban-tragere') }}" alt="Un card de ofertă tras în coloana Negocieri" loading="lazy"></div></figure>
+      <figure class="shot inset"><div class="chrome"><i></i><i></i><i></i><span>alternativa fără tragere: meniul ⋯ „Mută în”</span></div>
+        <div class="view"><img src="{{ img('kanban-meniu') }}" alt="Meniul Mută în de pe un card" loading="lazy"></div></figure>
+    </div>
+  </div>
+</section>
+
+<!-- 11. Comenzi -->
+<section class="slide" data-title="Comenzi cu poziții">
+  <div class="split">
+    <div class="txt">
+      <p class="kicker">Comenzi</p>
+      <h2>Comanda și <b>pozițiile ei</b></h2>
+      <ul>
+        <li>Antetul comenzii: număr (generat automat), dată, client, proiect, tip, status, avans, termene.</li>
+        <li><b>Pozițiile</b> se adaugă din catalogul de produse; prețul se preia din catalog dacă nu e completat.</li>
+        <li><b>Suma poziției = cantitate × preț</b>, iar <b>totalul comenzii</b> se recalculează în bază la fiecare modificare.</li>
+        <li>Fiecare poziție se poate edita sau șterge direct în tabel.</li>
+      </ul>
+    </div>
+    <figure class="shot" style="margin:0;max-height:100%"><div class="chrome"><i></i><i></i><i></i><span>…/crm/orders/2</span></div>
+      <div class="view"><img src="{{ img('comanda') }}" alt="Comanda nr. 0002 cu pozițiile ei" loading="lazy"></div></figure>
+  </div>
+</section>
+
+<!-- 12. Calendar -->
+<section class="slide" data-title="Calendar">
+  <div class="split">
+    <div class="txt">
+      <p class="kicker">Calendar</p>
+      <h2>Sarcinile <b>pe luni</b></h2>
+      <ul>
+        <li>Grila lunii, cu sarcinile puse pe ziua termenului.</li>
+        <li>Culori: <b style="color:#2fc6f6">deschisă</b>, <b style="color:#e0362f">întârziată</b>, făcută (tăiată).</li>
+        <li>Navigare între luni, butonul <b>Azi</b> și filtrul <b>Doar deschise</b>.</li>
+        <li>Clic pe sarcină — deschide formularul ei; <b>+ Sarcină</b> adaugă una nouă.</li>
+        <li>Pe telefon, calendarul devine o <b>agendă</b> pe zile.</li>
+      </ul>
+    </div>
+    <figure class="shot fit"><div class="chrome"><i></i><i></i><i></i><span>…/crm/calendar?m=2026-09</span></div>
+      <div class="view"><img src="{{ img('calendar') }}" alt="Calendarul sarcinilor pe septembrie 2026" loading="lazy"></div></figure>
+  </div>
+</section>
+
+<!-- 13. Cautare -->
+<section class="slide" data-title="Căutare globală">
+  <div class="split">
+    <div class="txt">
+      <p class="kicker">Căutare globală</p>
+      <h2>Un cuvânt — <b>rezultate din tot CRM-ul</b></h2>
+      <ul>
+        <li>Câmpul din bara de sus caută în <b>clienți, contacte, lead-uri, oferte, comenzi, sarcini, proiecte, produse și companii</b>.</li>
+        <li>Rezultatele sunt grupate pe tabele, cu numărul total și primele 5 din fiecare.</li>
+        <li>Găsește și după <b>numele clientului legat</b>: „moldtehnica” aduce ofertele, contactele și sarcinile lui.</li>
+        <li>Link-ul „toate ›” deschide lista completă, deja filtrată.</li>
+      </ul>
+    </div>
+    <figure class="shot fit"><div class="chrome"><i></i><i></i><i></i><span>…/crm/search?q=moldtehnica</span></div>
+      <div class="view"><img src="{{ img('cautare') }}" alt="Rezultatele căutării globale pentru moldtehnica" loading="lazy"></div></figure>
+  </div>
+</section>
+
+<!-- 14. Companii -->
+<section class="slide" data-title="Registrul companiilor (date.gov.md)">
+  <div class="split">
+    <div class="txt">
+      <p class="kicker">Companii · date.gov.md</p>
+      <h2>Registrul de stat <b>în CRM</b></h2>
+      <ul>
+        <li><b>{{ num('companies') }} companii</b> din registrul deschis al Republicii Moldova (date.gov.md): denumire, IDNO, formă juridică, data înregistrării, administratori, adresă.</li>
+        <li>Butonul <b>„Adaugă ca client”</b> creează clientul cu datele din registru — sau îl deschide pe cel existent, dacă IDNO-ul e deja în listă.</li>
+        <li>Fondatorii și datoriile se păstrează ca text JSON, alături de datele de bază.</li>
+      </ul>
+    </div>
+    <div class="duo">
+      <figure class="shot"><div class="chrome"><i></i><i></i><i></i><span>…/crm/companies/</span></div>
+        <div class="view"><img src="{{ img('companii') }}" alt="Lista companiilor din registru" loading="lazy"></div></figure>
+      <figure class="shot inset"><div class="chrome"><i></i><i></i><i></i><span>…/crm/companies/1003600060378/edit</span></div>
+        <div class="view"><img src="{{ img('companie') }}" alt="Fișa unei companii cu butonul Adaugă ca client" loading="lazy"></div></figure>
+    </div>
+  </div>
+</section>
+
+<!-- 15. Telefon -->
+<section class="slide" data-title="Pe telefon">
+  <div class="split">
+    <div class="txt">
+      <p class="kicker">Pe telefon</p>
+      <h2>Aceeași aplicație, <b>în buzunar</b></h2>
+      <ul>
+        <li>Meniul lateral se deschide din <b>☰</b>; pe calculator se poate restrânge la iconițe.</li>
+        <li>Tabla Kanban se derulează orizontal, cardurile se mută prin <b>apăsare lungă</b> sau din meniul ⋯.</li>
+        <li>Calendarul devine <b>agendă</b>, formularele trec pe o singură coloană.</li>
+        <li>Interfața e <b>luminoasă</b> pentru toți; tema întunecată se alege din meniul utilizatorului.</li>
+      </ul>
+    </div>
+    <div class="shots2" style="max-width:640px">
+      <figure class="shot"><div class="view"><img src="{{ img('telefon-kanban') }}" alt="Kanban-ul sarcinilor pe telefon" loading="lazy"></div></figure>
+      <figure class="shot"><div class="view"><img src="{{ img('telefon-calendar') }}" alt="Calendarul ca agendă pe telefon" loading="lazy"></div></figure>
+    </div>
+  </div>
+</section>
+
+<!-- 16. Final -->
+<section class="slide end-slide" data-title="Încercați aplicația">
+  <p class="kicker" style="color:var(--accent)">Încercați</p>
+  <h2>Demo CRM este online</h2>
+  <a class="url" href="{{ url_for('dashboard') }}">https://flask-hello-oracle.duckdns.org/crm/</a>
+  <div class="acc"><span>Utilizator: <b>DEMO</b></span><span>Parolă: <b>DEMO123</b></span></div>
+  <div class="btns" style="justify-content:center">
+    <a class="btn lime" href="{{ url_for('dashboard') }}">Deschide aplicația →</a>
+    <button class="btn line" type="button" data-go="0">Prezentarea de la început</button>
+  </div>
+  <p class="small">Cod sursă: <a href="https://github.com/Sergo871/crm-oracle-app">github.com/Sergo871/crm-oracle-app</a> · Flask · python-oracledb · Oracle Autonomous Database</p>
+</section>
+
+</main>
+
+<div class="progress" id="progress"></div>
+<nav class="bar" aria-label="Navigare slide-uri">
+  <a class="brand" href="{{ url_for('dashboard') }}">Demo <span>CRM</span></a>
+  <span class="ttl" id="ttl"></span>
+  <div class="dots" id="dots"></div>
+  <button type="button" id="prev" aria-label="Slide-ul anterior" title="Anterior (←)">←</button>
+  <span class="cnt" id="cnt"></span>
+  <button type="button" id="next" aria-label="Slide-ul următor" title="Următor (→)">→</button>
+  <a class="btn blue app" href="{{ url_for('dashboard') }}">Aplicația</a>
+</nav>
+
+<div class="zoom" id="zoom" role="dialog" aria-label="Captură mărită"><span class="x">Esc · clic pentru închidere</span><img alt=""></div>
+
+<script>
+(function () {
+  'use strict';
+  var slides = [].slice.call(document.querySelectorAll('.slide'));
+  var cur = -1, N = slides.length;
+  var ttl = document.getElementById('ttl'), cnt = document.getElementById('cnt');
+  var prev = document.getElementById('prev'), next = document.getElementById('next');
+  var bar = document.getElementById('progress'), dots = document.getElementById('dots');
+  var zoom = document.getElementById('zoom'), zimg = zoom.querySelector('img');
+
+  slides.forEach(function (s, i) {
+    var d = document.createElement('button');
+    d.type = 'button'; d.title = (i + 1) + '. ' + s.dataset.title;
+    d.setAttribute('aria-label', d.title);
+    d.addEventListener('click', function () { go(i); });
+    dots.appendChild(d);
+  });
+
+  function go(i) {
+    i = Math.max(0, Math.min(N - 1, i));
+    if (i === cur) return;
+    slides.forEach(function (s, k) {
+      s.classList.toggle('on', k === i);
+      s.classList.toggle('before', k < i);
+      s.setAttribute('aria-hidden', k === i ? 'false' : 'true');
+    });
+    [].forEach.call(dots.children, function (d, k) { d.classList.toggle('on', k === i); });
+    cur = i;
+    ttl.textContent = slides[i].dataset.title;
+    cnt.textContent = (i + 1) + ' / ' + N;
+    prev.disabled = i === 0; next.disabled = i === N - 1;
+    bar.style.width = ((i + 1) / N * 100) + '%';
+    document.title = slides[i].dataset.title + ' · Demo CRM';
+    if (location.hash !== '#' + (i + 1)) history.replaceState(null, '', '#' + (i + 1));
+  }
+  function fromHash() {
+    var k = parseInt(location.hash.slice(1), 10);
+    go(k >= 1 && k <= N ? k - 1 : 0);
+  }
+
+  prev.addEventListener('click', function () { go(cur - 1); });
+  next.addEventListener('click', function () { go(cur + 1); });
+  document.querySelectorAll('[data-go]').forEach(function (b) {
+    b.addEventListener('click', function () { go(parseInt(b.dataset.go, 10)); });
+  });
+  window.addEventListener('hashchange', fromHash);
+
+  document.addEventListener('keydown', function (e) {
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    if (zoom.classList.contains('open')) {
+      if (e.key === 'Escape') closeZoom();
+      return;
+    }
+    var k = e.key;
+    if (k === 'ArrowRight' || k === 'PageDown' || (k === ' ' && !e.shiftKey)) go(cur + 1);
+    else if (k === 'ArrowLeft' || k === 'PageUp' || (k === ' ' && e.shiftKey)) go(cur - 1);
+    else if (k === 'Home') go(0);
+    else if (k === 'End') go(N - 1);
+    else return;
+    e.preventDefault();
+  });
+
+  // glisare pe ecran tactil (doar gesturi clar orizontale, ca derularea verticala sa ramana libera)
+  var tx = null, ty = 0;
+  document.addEventListener('touchstart', function (e) {
+    if (e.touches.length !== 1 || zoom.classList.contains('open')) { tx = null; return; }
+    tx = e.touches[0].clientX; ty = e.touches[0].clientY;
+  }, {passive: true});
+  document.addEventListener('touchend', function (e) {
+    if (tx === null) return;
+    var dx = e.changedTouches[0].clientX - tx, dy = e.changedTouches[0].clientY - ty;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) go(cur + (dx < 0 ? 1 : -1));
+    tx = null;
+  }, {passive: true});
+
+  // capturile se maresc la clic
+  document.querySelectorAll('.shot .view img').forEach(function (im) {
+    im.addEventListener('click', function () {
+      zimg.src = im.src; zimg.alt = im.alt;
+      zoom.classList.add('open'); zoom.scrollTop = 0;
+    });
+  });
+  function closeZoom() { zoom.classList.remove('open'); }
+  zoom.addEventListener('click', closeZoom);
+
+  fromHash();
+})();
+</script>
+</body>
+</html>

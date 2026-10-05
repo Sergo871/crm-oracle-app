@@ -14,5 +14,6 @@
     <button class="btn primary block" type="submit">Intră</button>
     {% if demo_login %}<p class="muted" style="margin-top:12px;text-align:center">Cont demonstrativ: <b>{{ demo_login }}</b> / <b>{{ demo_password }}</b> — apăsați „Intră”.</p>{% endif %}
   </form>
+  <p class="muted" style="margin:14px 0 0;text-align:center"><a href="{{ url_for('prezentare') }}">Prezentarea aplicației ›</a></p>
 </div>
 {% endblock %}
