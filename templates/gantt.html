@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block title %}Plan de lucru (Gantt){% endblock %}
+{% block wrap_class %}wide{% endblock %}
+{% set STATES = {'done': 'gata', 'lost': 'anulat', 'late': 'întârziat', 'work': 'în lucru', 'plan': 'planificat'} %}
+{% block content %}
+<div class="page-head">
+  <h1>Plan de lucru (Gantt) <span class="count">{{ rows|length }}</span></h1>
+  <div class="seg" role="tablist">
+    {% for key, label in modes.items() %}
+      <a class="btn {{ 'on' if key == mode }}" href="{{ url_with(mode=key) }}">{{ label }}</a>
+    {% endfor %}
+  </div>
+  <div class="actions">
+    <a class="btn {{ 'on' if only_open }}" href="{{ url_with(open=(None if only_open else '1')) }}">{{ 'Toate' if only_open else 'Doar active' }}</a>
+  </div>
+</div>
+<p class="muted small g-hint">
+  rânduri: {{ rows|length }}{% if mode == 'projects' %} (lucrări: {{ works }}){% endif %} · întârziate: <b class="g-late-n">{{ late }}</b>
+  · {{ lo|fdate }} — {{ hi|fdate }}
+  {% if mode == 'projects' %}· trageți bara pentru a muta datele, marginea dreaptă schimbă termenul · dublu clic deschide fișa{% else %}· dublu clic deschide comanda{% endif %}
+</p>
+
+{% if rows %}
+<div class="card g-card">
+  <div class="gantt" id="gantt" data-csrf="{{ csrf_token() }}" data-lo="{{ lo.isoformat() }}" data-days="{{ days }}" data-today="{{ today.isoformat() }}">
+    <div class="g-row g-headrow">
+      <div class="g-lab">{{ 'Proiect / sarcină' if mode == 'projects' else 'Comandă' }}</div>
+      <div class="g-track g-scale">
+        {% for w, left in weeks %}{% if (w - today).days|abs > 2 %}<span style="left: {{ left }}%">{{ w.strftime('%d.%m') }}</span>{% endif %}{% endfor %}
+        <b class="g-today-lbl" style="left: {{ today_left }}%">azi</b>
+      </div>
+    </div>
+    <div class="g-body">
+      <div class="g-layer" aria-hidden="true">
+        {% for w, left in weeks %}<i class="g-week" style="left: {{ left }}%"></i>{% endfor %}
+        <i class="g-today" style="left: {{ today_left }}%"></i>
+        <svg class="g-links"><defs>
+          <marker id="g-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 8 4 0 8z" fill="#7d8a96"/></marker>
+          <marker id="g-arrow-bad" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 8 4 0 8z" fill="#e0362f"/></marker>
+        </defs></svg>
+      </div>
+      {% for r in rows %}
+      <div class="g-row {{ 'head' if r.head else 'sub' }}" {% if r.parent %}data-parent="{{ r.parent }}"{% endif %} {% if r.head and r.n %}data-group="{{ r.id }}"{% endif %}>
+        <div class="g-lab">
+          {% if r.head and r.n %}<button type="button" class="g-fold" aria-label="Restrânge / extinde sarcinile" aria-expanded="true">▾</button>{% endif %}
+          <a href="{{ r.href }}" title="{{ r.title }}">{{ r.title }}</a>
+          <span class="g-info" title="{{ r.info }}">{{ r.info }}</span>
+        </div>
+        <div class="g-track">
+          <div class="g-bar s-{{ r.state }} {{ 'mov' if r.movable }}" style="left: {{ r.left }}%; width: {{ r.width }}%"
+               data-kind="{{ r.kind }}" data-id="{{ r.id }}" {% if r.dep %}data-dep="{{ r.dep }}"{% endif %}
+               data-start="{{ r.start.isoformat() }}" data-end="{{ r.end.isoformat() }}" data-href="{{ r.href }}"
+               {% if r.movable %}data-url="{{ url_for('gantt_move', kind=r.kind, pk=r.id) }}"{% endif %}
+               title="{{ r.title }}: {{ r.start|fdate }} — {{ r.end|fdate }} · {{ STATES[r.state] }}">
+            {% if r.movable %}<i class="g-h" title="Trageți pentru a schimba termenul"></i>{% endif %}
+          </div>
+          {% if r.late_w %}<div class="g-overdue" style="left: {{ r.left + r.width }}%; width: {{ r.late_w }}%"></div>{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+<p class="muted small legend g-legend">
+  <span><i class="g-sw s-plan"></i> planificat</span>
+  <span><i class="g-sw s-work"></i> în lucru</span>
+  <span><i class="g-sw s-late"></i> întârziat</span>
+  <span><i class="g-sw s-done"></i> gata</span>
+  <span><i class="g-sw s-lost"></i> anulat</span>
+  {% if mode == 'projects' %}<span>→ săgeata: sarcina începe după cea precedentă</span>{% endif %}
+</p>
+<div class="kb-toast" id="g-toast" role="status" aria-live="polite"></div>
+{% else %}
+<p class="muted center">Nimic de afișat pe plan.</p>
+{% endif %}
+{% endblock %}
+{% block scripts %}<script src="{{ static_url('gantt.js') }}"></script>{% endblock %}

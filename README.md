@@ -26,6 +26,9 @@ Online: <https://flask-hello-oracle.duckdns.org/crm/>
 - **Comenzi master-detail**: antetul comenzii și pozițiile ei. Suma poziției = cantitate × preț,
   iar totalul comenzii se recalculează automat. Prețul se preia din catalog.
 - **Calendar** lunar pentru sarcini, după `due_at` (pe telefon se afișează ca agendă).
+- **Plan de lucru (Gantt)** la `/gantt`: proiectele cu sarcinile lor pe axa timpului (săgeți „după sarcina”,
+  întârzierile hașurate până azi) sau comenzile de la dată la livrare; barele se trag cu mouse-ul
+  (mutare / termen), iar noile date se salvează prin POST cu token CSRF.
 - **Companii** (registrul date.gov.md): butonul „Adaugă ca client”.
 - Interfață în limba română, adaptată pentru telefon, cu temă luminoasă/întunecată.
   Valorile categoriale din bază (în rusă, ca în Demo CRM) se afișează traduse.
@@ -38,12 +41,12 @@ Online: <https://flask-hello-oracle.duckdns.org/crm/>
 ## Structură
 
 ```
-app.py        rute Flask (panou, liste/formulare generice, Kanban, căutare, comenzi, calendar, login)
+app.py        rute Flask (panou, liste/formulare generice, Kanban, căutare, comenzi, calendar, Gantt, login)
 schema.py     descrierea tabelelor: câmpuri, etichete, legături, traduceri
 db.py         pool de conexiuni python-oracledb (thin mode, wallet)
 manage.py     administrare utilizatori (set-password, list-users)
 templates/    șabloane Jinja
-static/       CSS, kanban.js (drag-and-drop), prezentare/ (capturi)
+static/       CSS, kanban.js și gantt.js (drag-and-drop), prezentare/ (capturi)
 tools/        capturi_prezentare.py (Playwright)
 deploy/       unitate systemd + fragment nginx pentru /crm/
 ```

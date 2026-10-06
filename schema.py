@@ -233,7 +233,7 @@ NAV = [
              ("leads", "Lead-uri", "lead"), ("clients", "Clienți", "company"),
              ("contacts", "Contacte", "contact"), ("orders", "Comenzi", "cart")]),
     ("Activitate", [("tasks", "Sarcini", "task"), ("calendar", "Calendar", "calendar"),
-                    ("projects", "Proiecte", "project")]),
+                    ("gantt", "Plan de lucru", "gantt"), ("projects", "Proiecte", "project")]),
     ("Catalog", [("items", "Produse", "box"), ("companies", "Registru companii", "registry")]),
 ]
 

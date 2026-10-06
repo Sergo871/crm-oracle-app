@@ -364,6 +364,64 @@ body.guest { background: linear-gradient(135deg, #1d2b3a 0%, #2067b0 55%, #2fc6f
 .login-box .btn { margin-top: 6px; min-height: 44px; font-size: .9rem; }
 
 /* ---- tableta / telefon */
+/* ---- Plan de lucru (Gantt): o linie pe proiect/comanda, sarcinile dedesubt; barele in % din scala */
+.seg { display: flex; gap: 6px; flex-wrap: wrap; }
+.g-hint { margin: -6px 0 12px; }
+.g-card { padding: 0; overflow-x: auto; }
+.gantt { --lab: 460px; --row: 30px; min-width: 980px; position: relative; font-size: .84rem; }
+.g-row { display: grid; grid-template-columns: var(--lab) 1fr; min-height: var(--row); align-items: stretch; }
+.g-row.head { border-top: 1px solid var(--line); }
+.g-row.sub:nth-child(even) .g-track { background: rgba(130, 139, 149, .035); }
+.g-lab {
+  position: sticky; left: 0; z-index: 3; display: flex; align-items: center; gap: 8px; min-width: 0;
+  padding: 0 12px 0 16px; background: var(--surface); border-right: 1px solid var(--line);
+}
+.g-lab a { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); }
+.g-row.head .g-lab a { font-weight: 700; }
+.g-row.sub .g-lab { padding-left: 40px; }
+.g-row.sub .g-lab a { color: var(--ink-2); }
+.g-info { flex: 0 1 auto; max-width: 48%; min-width: 40px; margin-left: auto; text-align: right; color: var(--muted); font-size: .76rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.g-fold { flex-shrink: 0; width: 20px; height: 20px; margin-left: -4px; padding: 0; border: 0; border-radius: 4px; background: none; color: var(--muted); cursor: pointer; transition: transform .15s; }
+.g-fold:hover { background: var(--surface-2); color: var(--ink); }
+.g-row.folded .g-fold { transform: rotate(-90deg); }
+.g-track { position: relative; }
+.g-headrow { position: sticky; top: 0; z-index: 4; min-height: 34px; background: var(--surface); border-bottom: 1px solid var(--line); }
+.g-headrow .g-lab { font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.g-scale span { position: absolute; top: 9px; padding-left: 5px; font-size: .74rem; color: var(--muted); white-space: nowrap; }
+.g-today-lbl { position: absolute; top: 9px; padding-left: 5px; font-size: .74rem; color: var(--late); white-space: nowrap; }
+.g-body { position: relative; padding-bottom: 8px; }
+.g-layer { position: absolute; top: 0; bottom: 0; left: var(--lab); right: 0; pointer-events: none; z-index: 1; }
+.g-week { position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--line); }
+.g-today { position: absolute; top: -34px; bottom: 0; border-left: 2px solid var(--late); opacity: .8; z-index: 2; }
+.g-links { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.g-links > path { fill: none; stroke: #7d8a96; stroke-width: 1.3; }
+.g-links > path.bad { stroke: var(--late); stroke-dasharray: 4 3; }
+.g-bar {
+  position: absolute; top: 50%; height: 14px; margin-top: -7px; min-width: 6px; z-index: 2;
+  border-radius: 4px; background: var(--c); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .06);
+  touch-action: none; user-select: none;
+}
+.g-row.head .g-bar { height: 18px; margin-top: -9px; }
+.g-row.sub .g-bar { opacity: .92; }
+.g-bar.mov { cursor: grab; }
+.g-bar.mov:hover { box-shadow: 0 0 0 2px rgba(17, 169, 217, .35); }
+.g-bar.dragging { cursor: grabbing; opacity: .75; box-shadow: 0 2px 10px rgba(30, 40, 50, .3); z-index: 5; }
+.g-bar.saving { opacity: .55; }
+.g-h { position: absolute; right: -9px; top: -2px; bottom: -2px; width: 9px; cursor: ew-resize; border-radius: 3px; }
+.g-bar.mov:hover .g-h { background: rgba(0, 0, 0, .18); }
+.g-overdue { position: absolute; top: 50%; height: 6px; margin-top: -3px; background: repeating-linear-gradient(-45deg, var(--late) 0 4px, #f3a6a2 4px 7px); border-radius: 0 3px 3px 0; z-index: 1; }
+.s-plan { --c: #c3d6e6; } .s-work { --c: #39a8ef; } .s-late { --c: var(--late); } .s-done { --c: #7bd500; } .s-lost { --c: #c5cad0; }
+.g-row.head .s-plan { --c: #9fc2de; }
+.g-tip { position: fixed; z-index: 50; padding: 4px 9px; border-radius: 6px; background: #1d2b3a; color: #fff; font-size: .78rem; pointer-events: none; white-space: nowrap; }
+.g-legend { flex-wrap: wrap; gap: 6px 18px; }
+.g-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.g-sw { display: inline-block; width: 22px; height: 10px; border-radius: 3px; background: var(--c); }
+@media (max-width: 700px) {
+  .gantt { --lab: 190px; min-width: 760px; }
+  .g-info { display: none; }
+  .g-row.sub .g-lab { padding-left: 26px; }
+}
+
 @media (max-width: 1100px) {
   .kpis { grid-template-columns: 1fr 1fr; }
 }

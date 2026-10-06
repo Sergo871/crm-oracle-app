@@ -227,7 +227,7 @@ code { background: #e9eef2; padding: .05em .35em; border-radius: 5px; }
       <div class="card" style="--c:var(--blue)"><h3>Clienți și contacte</h3><p>Firmele cu IDNO, telefon, adresă, administrator și persoanele de contact.</p></div>
       <div class="card" style="--c:var(--accent)"><h3>Lead-uri și oferte</h3><p>Cereri noi pe surse și oferte pe etape: nouă → trimisă → negocieri → câștigată / pierdută.</p></div>
       <div class="card" style="--c:var(--orange)"><h3>Proiecte și comenzi</h3><p>Proiecte cu buget și avans; comenzi cu poziții din catalog și total calculat automat.</p></div>
-      <div class="card" style="--c:var(--green)"><h3>Sarcini și calendar</h3><p>Apeluri, întâlniri și sarcini cu termen, responsabil și prioritate; cele întârziate ies în evidență.</p></div>
+      <div class="card" style="--c:var(--green)"><h3>Sarcini, calendar și Gantt</h3><p>Sarcini cu termen, responsabil și prioritate; planul de lucru al proiectelor pe diagrama Gantt.</p></div>
       <div class="card" style="--c:var(--violet)"><h3>Catalog și registru</h3><p>Produse și servicii cu preț și TVA; registrul companiilor din Moldova, din care se creează clienți.</p></div>
     </div>
     <div class="stats">
@@ -526,6 +526,58 @@ code { background: #e9eef2; padding: .05em .35em; border-radius: 5px; }
     </div>
     <figure class="shot fit"><div class="chrome"><i></i><i></i><i></i><span>…/crm/calendar?m=2026-09</span></div>
       <div class="view"><img src="{{ img('calendar') }}" alt="Calendarul sarcinilor pe septembrie 2026" loading="lazy"></div></figure>
+  </div>
+</section>
+
+<!-- Gantt -->
+<section class="slide" data-title="Plan de lucru (Gantt)">
+  <div class="split">
+    <div class="txt">
+      <p class="kicker">Plan de lucru · Gantt</p>
+      <h2>Proiectele și sarcinile <b>pe axa timpului</b></h2>
+      <ul>
+        <li>Fiecare <b>proiect</b> e o bară de la început până la termen; dedesubt — <b>sarcinile</b> lui, în ordinea executării.</li>
+        <li><b>Săgețile</b> arată că o sarcină începe după cea precedentă (câmpul „Depinde de”).</li>
+        <li>Culori: <b style="color:#7bd500">gata</b>, <b style="color:#39a8ef">în lucru</b>, <b style="color:#e0362f">întârziat</b>; hașura roșie arată întârzierea până azi.</li>
+        <li>Linia roșie verticală — <b>ziua de azi</b>; triunghiul ▾ restrânge sarcinile unui proiect.</li>
+      </ul>
+    </div>
+    <figure class="shot fit"><div class="chrome"><i></i><i></i><i></i><span>…/crm/gantt</span></div>
+      <div class="view"><img src="{{ img('gantt-proiecte') }}" alt="Diagrama Gantt a proiectelor cu sarcinile lor" loading="lazy"></div></figure>
+  </div>
+</section>
+
+<section class="slide" data-title="Gantt: tragerea barelor">
+  <div class="split">
+    <div class="txt">
+      <p class="kicker">Gantt · drag-and-drop</p>
+      <h2>Tragi bara — <b>datele se salvează</b></h2>
+      <ul>
+        <li>Tragerea barei <b>mută</b> sarcina sau proiectul (începutul și termenul împreună).</li>
+        <li>Marginea dreaptă a barei schimbă doar <b>termenul</b>.</li>
+        <li>Cât tragi, eticheta arată noile date și cu câte zile s-a mutat.</li>
+        <li>Salvarea pleacă prin <code>POST</code> cu token CSRF; la eroare bara <b>revine</b> la loc.</li>
+      </ul>
+    </div>
+    <figure class="shot fit"><div class="chrome"><i></i><i></i><i></i><span>bara unei sarcini în timpul tragerii</span></div>
+      <div class="view"><img src="{{ img('gantt-tragere') }}" alt="O sarcină trasă pe diagrama Gantt" loading="lazy"></div></figure>
+  </div>
+</section>
+
+<section class="slide" data-title="Gantt: comenzi">
+  <div class="split">
+    <div class="txt">
+      <p class="kicker">Gantt · comenzi</p>
+      <h2>Comenzile <b>de la dată la livrare</b></h2>
+      <ul>
+        <li>Al doilea mod al planului: fiecare <b>comandă</b> de la data ei până la livrare (sau termenul de plată).</li>
+        <li>Lângă număr: tipul, clientul, statusul și <b>suma</b>.</li>
+        <li>Comenzile executate și achitate sunt verzi, cele anulate — gri.</li>
+        <li>Filtrul <b>„Doar active”</b> ascunde ce e închis; dublu clic deschide comanda.</li>
+      </ul>
+    </div>
+    <figure class="shot fit"><div class="chrome"><i></i><i></i><i></i><span>…/crm/gantt?mode=orders</span></div>
+      <div class="view"><img src="{{ img('gantt-comenzi') }}" alt="Diagrama Gantt a comenzilor" loading="lazy"></div></figure>
   </div>
 </section>
 

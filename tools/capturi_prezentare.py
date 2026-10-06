@@ -25,6 +25,8 @@ PAGES = [
     ("kanban-sarcini", "/tasks/kanban", False),
     ("calendar", "/calendar?m=2026-09", False),
     ("cautare", "/search?q=moldtehnica", False),
+    ("gantt-proiecte", "/gantt", False),
+    ("gantt-comenzi", "/gantt?mode=orders", False),
     ("companii", "/companies/", False),
     ("companie", "/companies/1003600060378/edit", True),
 ]
@@ -40,6 +42,24 @@ def shot(page, name, full=False):
     if full:
         page.set_viewport_size(vp)
     print("ok", name)
+
+
+def gantt_drag(page):
+    page.wait_for_load_state("networkidle")
+    bar = page.locator(".g-row.sub .g-bar.s-work, .g-row.sub .g-bar.s-late").first
+    bar.scroll_into_view_if_needed()
+    page.evaluate("window.scrollBy(0, 220)")
+    bb = bar.bounding_box()
+    x0, y0 = bb["x"] + bb["width"] / 2, bb["y"] + bb["height"] / 2
+    page.mouse.move(x0, y0)
+    page.mouse.down()
+    page.mouse.move(x0 + 90, y0, steps=10)
+    page.wait_for_timeout(200)
+    page.screenshot(path=os.path.join(OUT, "gantt-tragere.png"))
+    print("ok gantt-tragere")
+    page.evaluate("document.getElementById('gantt').dispatchEvent("
+                  "new PointerEvent('pointercancel', {bubbles: true}))")
+    page.mouse.up()
 
 
 def main():
@@ -86,6 +106,10 @@ def main():
         page.wait_for_timeout(150)
         page.screenshot(path=os.path.join(OUT, "kanban-meniu.png"))
         print("ok kanban-meniu")
+
+        # Gantt: bara unei sarcini în timpul tragerii (se anulează, datele rămân neschimbate)
+        page.goto(BASE + "/gantt")
+        gantt_drag(page)
 
         # telefon
         mob = browser.new_context(viewport={"width": 390, "height": 844}, color_scheme="light",

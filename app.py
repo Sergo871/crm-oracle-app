@@ -96,7 +96,7 @@ def view_args():
 
 
 def nav_url(key):
-    if key in ("dashboard", "calendar"):
+    if key in ("dashboard", "calendar", "gantt"):
         return url_for(key)
     if key in KANBAN and session.get("views", {}).get(key) == "kanban":
         return url_for("table_kanban", table=key)
@@ -148,7 +148,7 @@ app.jinja_env.globals.update(csrf_token=csrf_token, url_with=url_with, nav_url=n
 def active_section():
     va = request.view_args or {}
     active = va.get("table") or {"order_detail": "orders", "calendar": "calendar",
-                                 "dashboard": "dashboard"}.get(request.endpoint)
+                                 "gantt": "gantt", "dashboard": "dashboard"}.get(request.endpoint)
     return {"active": active, "today": dt.date.today()}
 
 
@@ -859,6 +859,156 @@ def calendar():
                            month_name=f"{MONTHS[first.month]} {first.year}",
                            prev=prev.strftime("%Y-%m"), nxt=nxt.strftime("%Y-%m"),
                            weekdays=WEEKDAYS, only_open=only_open, n=len(rows))
+
+# ---------------------------------------------------------------- plan de lucru (Gantt)
+
+GANTT_MODES = {"projects": "Proiecte și sarcini", "orders": "Comenzi"}
+# coloanele de date pe care le schimba tragerea unei bare
+GANTT_DATES = {"projects": ("start_date", "due_date"), "tasks": ("plan_start", "due_at")}
+PROJECT_CLOSED, PROJECT_LOST = "Закрыт", "Проигран"
+ORDER_DONE, ORDER_CANCELLED = ("Выполнен", "Оплачен"), "Отменён"
+
+
+def _day(v):
+    return v.date() if isinstance(v, dt.datetime) else v
+
+
+def gantt_state(end, closed, lost, today, started=True):
+    """Starea unei bare: gata (verde), anulată (gri), întârziată (roșu), în lucru, planificată."""
+    if closed:
+        return "done"
+    if lost:
+        return "lost"
+    if end < today:
+        return "late"
+    return "work" if started else "plan"
+
+
+def gantt_projects(today, only_open):
+    projects = db.query("""
+        SELECT p.id, p.name, p.status, p.manager, p.start_date, p.due_date,
+               (SELECT c.denumire FROM clients c WHERE c.id = p.client_id) client
+          FROM projects p ORDER BY p.start_date, p.id""")
+    tasks = defaultdict(list)
+    for t in db.query("""
+            SELECT id, project_id, subject, assignee, stage, NVL(done,0) done,
+                   plan_start, due_at, depends_on
+              FROM tasks WHERE project_id IS NOT NULL
+             ORDER BY project_id, seq, plan_start, id"""):
+        tasks[t["project_id"]].append(t)
+    rows = []
+    for p in projects:
+        closed, lost = p["status"] == PROJECT_CLOSED, p["status"] == PROJECT_LOST
+        if only_open and (closed or lost):
+            continue
+        sub = []
+        for t in tasks.get(p["id"], []):
+            start, end = _day(t["plan_start"]) or _day(t["due_at"]), _day(t["due_at"])
+            end = end or start
+            if not start:
+                continue
+            start = min(start, end)
+            sub.append(dict(
+                kind="tasks", id=t["id"], dep=t["depends_on"], start=start, end=end,
+                title=t["subject"], href=url_for("table_form", table="tasks", pk=t["id"]),
+                info=" · ".join(x for x in (t["assignee"], ro(t["stage"])) if x),
+                state=gantt_state(end, bool(t["done"]), False, today,
+                                  t["stage"] not in (None, "Новая")),
+                movable=True))
+        start = _day(p["start_date"]) or min((r["start"] for r in sub), default=None)
+        end = _day(p["due_date"]) or max((r["end"] for r in sub), default=None)
+        if not start or not end:
+            continue
+        start = min(start, end)
+        rows.append(dict(
+            kind="projects", id=p["id"], start=start, end=end, title=p["name"], head=True,
+            href=url_for("table_form", table="projects", pk=p["id"]),
+            info=" · ".join(x for x in (p["client"], ro(p["status"])) if x),
+            state=gantt_state(end, closed, lost, today), movable=True, n=len(sub)))
+        rows.extend(dict(r, parent=p["id"]) for r in sub)
+    return rows
+
+
+def gantt_orders(today, only_open):
+    rows = []
+    for o in db.query("""
+            SELECT o.id, o.order_no, o.kind, o.status, o.order_date, o.due_date, o.ship_date,
+                   o.total, (SELECT c.denumire FROM clients c WHERE c.id = o.client_id) client
+              FROM orders o WHERE o.order_date IS NOT NULL
+             ORDER BY o.order_date, o.id"""):
+        closed = o["status"] in ORDER_DONE
+        lost = o["status"] == ORDER_CANCELLED
+        if only_open and (closed or lost):
+            continue
+        start = _day(o["order_date"])
+        end = max(start, _day(o["ship_date"]) or _day(o["due_date"]) or start)
+        rows.append(dict(
+            kind="orders", id=o["id"], start=start, end=end, head=True,
+            title=f"Nr. {o['order_no']} · {ro(o['kind'])}",
+            href=url_for("order_detail", oid=o["id"]),
+            info=" · ".join(x for x in (o["client"], ro(o["status"]), money(o["total"] or 0) + " lei")
+                            if x),
+            state=gantt_state(end, closed, lost, today), movable=False))
+    return rows
+
+
+@app.route("/gantt")
+def gantt():
+    mode = request.args.get("mode")
+    mode = mode if mode in GANTT_MODES else "projects"
+    only_open = request.args.get("open") == "1"
+    today = dt.date.today()
+    rows = (gantt_projects if mode == "projects" else gantt_orders)(today, only_open)
+
+    # scala: de la luni dinaintea primei bare pana dupa ultima (si dupa azi)
+    lo = min([r["start"] for r in rows] + [today])
+    hi = max([r["end"] for r in rows] + [today])
+    lo -= dt.timedelta(days=lo.weekday())
+    hi += dt.timedelta(days=7)
+    days = (hi - lo).days + 1
+    weeks = [lo + dt.timedelta(days=d) for d in range(0, days, 7)]
+
+    def pct(d):
+        return round((d - lo).days * 100 / days, 4)
+
+    for r in rows:
+        r["left"] = pct(r["start"])
+        r["width"] = round(((r["end"] - r["start"]).days + 1) * 100 / days, 4)
+        # partea intarziata: de la termen pana azi
+        if r["state"] == "late":
+            r["late_w"] = round((today - r["end"]).days * 100 / days, 4)
+    late = sum(1 for r in rows if r["state"] == "late")
+    return render_template(
+        "gantt.html", mode=mode, modes=GANTT_MODES, only_open=only_open, rows=rows,
+        weeks=[(w, pct(w)) for w in weeks], today_left=pct(today) + 50 / days,
+        lo=lo, hi=hi, days=days, late=late,
+        works=sum(1 for r in rows if not r.get("head")))
+
+
+@app.route("/gantt/<kind>/<int:pk>", methods=["POST"])
+def gantt_move(kind, pk):
+    """Tragerea unei bare Gantt: salveaza noile date de inceput si sfarsit (fetch, JSON)."""
+    cols = GANTT_DATES.get(kind)
+    if not cols:
+        abort(404)
+    try:
+        start = dt.date.fromisoformat(request.form.get("start", ""))
+        end = dt.date.fromisoformat(request.form.get("end", ""))
+    except ValueError:
+        return jsonify(ok=False, error="Dată invalidă."), 400
+    if end < start:
+        return jsonify(ok=False, error="Sfârșitul nu poate fi înainte de început."), 400
+    try:
+        n = db.execute(f"UPDATE {kind} SET {cols[0]} = :s, {cols[1]} = :e WHERE id = :i",
+                       {"s": dt.datetime.combine(start, dt.time()),
+                        "e": dt.datetime.combine(end, dt.time()), "i": pk})
+        db.commit()
+    except oracledb.DatabaseError as e:
+        return jsonify(ok=False, error=db_error(e)), 500
+    if not n:
+        return jsonify(ok=False, error="Înregistrarea nu mai există."), 404
+    return jsonify(ok=True, start=fdate(start), end=fdate(end))
+
 
 # ---------------------------------------------------------------- prezentare (publică)
 
